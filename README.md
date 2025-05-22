@@ -390,3 +390,5 @@ Explorez la documentation complète pour en savoir plus sur chaque fonctionnalit
 // feat: setup database with Drizzle ORM - Development on 2025-05-22
 
 // feat: add Docker configuration - Development on 2025-05-22
+
+// docs: create project documentation structure - Development on 2025-05-22
