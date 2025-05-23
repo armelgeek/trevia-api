@@ -69,3 +69,5 @@ export function checkPermission(action: string, subject: string) {
 // fix: improve auth error handling - 2025-06-21
 
 // feat: create auth middleware - Development on 2025-05-23
+
+// test: add authentication tests - Development on 2025-05-24
