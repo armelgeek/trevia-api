@@ -25,3 +25,5 @@ export default sessionValidator
 // feat: add password hashing - 2025-06-21
 
 // feat: implement user authentication system - Development on 2025-05-23
+
+// feat: add password hashing - Development on 2025-05-23
