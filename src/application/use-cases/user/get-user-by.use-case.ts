@@ -43,3 +43,5 @@ export class GetUserByIdUseCase extends IUseCase<GetUserByIdArgs, z.infer<typeof
 // feat: add user validation - Development on 2025-05-25
 
 // feat: add user service layer - Development on 2025-05-25
+
+// fix: user data validation edge cases - Development on 2025-05-25
