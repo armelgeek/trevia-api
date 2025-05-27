@@ -29,3 +29,5 @@ export class DeleteRoleUseCase {
 // setup development - sab 21 Jon 2025 12:11:36 +03
 
 // feat: add permission middleware - Development on 2025-05-26
+
+// feat: add role assignment functionality - Development on 2025-05-27
