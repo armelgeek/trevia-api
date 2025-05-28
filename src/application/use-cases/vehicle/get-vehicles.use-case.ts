@@ -66,3 +66,5 @@ export class GetVehiclesUseCase {
 // feat: create vehicle model and schema - 2025-06-21
 
 // feat: implement vehicle CRUD operations - Development on 2025-05-28
+
+// feat: add vehicle availability tracking - Development on 2025-05-28
