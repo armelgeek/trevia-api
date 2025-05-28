@@ -82,3 +82,5 @@ export class UpdateVehicleUseCase {
 // feat: implement vehicle CRUD operations - 2025-06-21
 
 // feat: create vehicle model and schema - Development on 2025-05-27
+
+// feat: add vehicle validation - Development on 2025-05-28
