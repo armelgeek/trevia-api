@@ -98,3 +98,5 @@ export { TripScheduler }
 // feat: implement trip generation service - Development on 2025-05-31
 
 // feat: add trip booking logic - Development on 2025-05-31
+
+// feat: add trip scheduling - Development on 2025-05-31
