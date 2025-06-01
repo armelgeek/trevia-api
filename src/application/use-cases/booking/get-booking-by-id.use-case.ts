@@ -68,3 +68,5 @@ export class GetBookingByIdUseCase {
   }
 }
 // feat: create booking system - Development on 2025-06-01
+
+// feat: add booking confirmation - Development on 2025-06-01
