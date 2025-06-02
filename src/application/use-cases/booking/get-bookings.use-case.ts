@@ -82,3 +82,5 @@ export class GetBookingsUseCase {
 }
 
 // feat: implement booking validation - Development on 2025-06-01
+
+// feat: add booking cancellation - Development on 2025-06-02
