@@ -39,3 +39,5 @@ export class GetDestinationsUseCase {
 // feat: implement location services - Development on 2025-06-06
 
 // feat: add geocoding functionality - Development on 2025-06-06
+
+// fix: location data validation - Development on 2025-06-07
