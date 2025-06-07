@@ -26,3 +26,5 @@ export class GetDepartureCitiesUseCase {
 }
 
 // feat: create location model - Development on 2025-06-06
+
+// feat: add location search - Development on 2025-06-07
