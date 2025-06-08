@@ -69,3 +69,5 @@ export class GetPricingUseCase {
 // feat: create pricing controller - Development on 2025-06-08
 
 // feat: add discount system - Development on 2025-06-08
+
+// fix: pricing edge cases - Development on 2025-06-09
