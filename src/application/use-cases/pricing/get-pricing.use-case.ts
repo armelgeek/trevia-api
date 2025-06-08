@@ -65,3 +65,5 @@ export class GetPricingUseCase {
 }
 
 // feat: create pricing model - Development on 2025-06-07
+
+// feat: create pricing controller - Development on 2025-06-08
