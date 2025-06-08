@@ -73,3 +73,5 @@ export class PricingController implements Routes {
 }
 
 // feat: implement dynamic pricing - Development on 2025-06-07
+
+// feat: add pricing calculation - Development on 2025-06-08
