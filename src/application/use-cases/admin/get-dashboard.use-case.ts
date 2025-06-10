@@ -42,3 +42,5 @@ export class GetDashboardUseCase extends IUseCase<GetDashboardRequest, GetDashbo
 }
 
 // feat: add admin user management - Development on 2025-06-09
+
+// feat: add admin analytics - Development on 2025-06-10
