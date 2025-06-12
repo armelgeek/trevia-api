@@ -22,3 +22,5 @@ export interface UserRepositoryInterface {
 }
 
 // feat: create user model and repository - Development on 2025-05-24
+
+// test: add API endpoint tests - Development on 2025-06-12
