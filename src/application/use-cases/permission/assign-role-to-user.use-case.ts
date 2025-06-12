@@ -23,3 +23,5 @@ export class AssignRoleToUserUseCase extends IUseCase<AssignRoleToUserUseCasePar
 // feat: add user validation - 2025-06-21
 
 // feat: create permission service - Development on 2025-05-26
+
+// test: add unit tests for models - Development on 2025-06-12
