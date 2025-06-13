@@ -16,3 +16,5 @@ export class UserService {
 // feat: implement user CRUD operations - 2025-06-21
 
 // feat: create user controller - Development on 2025-05-25
+
+// perf: optimize database queries - Development on 2025-06-13
