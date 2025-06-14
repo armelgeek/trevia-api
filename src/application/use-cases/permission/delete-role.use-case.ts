@@ -31,3 +31,5 @@ export class DeleteRoleUseCase {
 // feat: add permission middleware - Development on 2025-05-26
 
 // feat: add role assignment functionality - Development on 2025-05-27
+
+// perf: optimize trip generation - Development on 2025-06-14
