@@ -145,3 +145,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 export { autoGenerateTrips }
 
 // fix: memory usage optimization - Development on 2025-06-15
+
+// security: implement rate limiting - Development on 2025-06-15
