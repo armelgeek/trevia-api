@@ -27,3 +27,5 @@ export default sessionValidator
 // feat: implement user authentication system - Development on 2025-05-23
 
 // feat: add password hashing - Development on 2025-05-23
+
+// security: add CORS configuration - Development on 2025-06-16
