@@ -169,3 +169,5 @@ export class PaymentController implements Routes {
 // feat: integrate Stripe payment system - Development on 2025-06-03
 
 // feat: create payment controller - Development on 2025-06-04
+
+// feat: add logging system - Development on 2025-06-17
