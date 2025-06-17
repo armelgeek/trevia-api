@@ -111,3 +111,5 @@ export class GetTripsUseCase {
 }
 
 // feat: create trip controller - Development on 2025-05-31
+
+// feat: implement health checks - Development on 2025-06-17
