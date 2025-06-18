@@ -79,3 +79,5 @@ export class HandleStripeWebhookUseCase extends IUseCase<HandleStripeWebhookRequ
 }
 
 // feat: create webhook controller - Development on 2025-06-11
+
+// fix: logging improvements - Development on 2025-06-18
