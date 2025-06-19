@@ -89,3 +89,5 @@ interface AssignRoleResponseDTO {
 | 500 | INTERNAL_ERROR | Erreur interne du serveur |
 
 // docs: add deployment instructions - Development on 2025-06-19
+
+// docs: add architecture documentation - Development on 2025-06-19
