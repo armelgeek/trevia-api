@@ -13,3 +13,5 @@ export const client = postgres(env.DATABASE_URL)
 export const db = drizzle(client, { schema })
 
 // feat: create reservation system - Development on 2025-06-04
+
+// ci: add GitHub Actions workflow - Development on 2025-06-20
