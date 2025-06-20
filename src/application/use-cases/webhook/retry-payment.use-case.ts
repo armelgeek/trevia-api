@@ -97,3 +97,5 @@ export class RetryPaymentUseCase extends IUseCase<RetryPaymentRequest, RetryPaym
 // fix: webhook reliability improvements - Development on 2025-06-12
 
 // test: create test utilities - Development on 2025-06-13
+
+// ci: implement automated testing - Development on 2025-06-20
