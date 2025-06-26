@@ -1,6 +1,15 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../../infrastructure/database/db/index'
-import { bookings, bookingSeats, routes, schedules, seats, trips } from '../../../infrastructure/database/schema/schema'
+import {
+  bookings,
+  bookingSeats,
+  drivers,
+  routes,
+  schedules,
+  seats,
+  trips,
+  vehicles
+} from '../../../infrastructure/database/schema/schema'
 
 interface GetTripsInput {
   page?: string
@@ -18,12 +27,17 @@ interface GetTripsInput {
 interface TripData {
   id: string
   routeId: string
+  routeName?: string | null
   vehicleId: string
+  vehicleName?: string | null
   driverId: string
+  driverName?: string | null
   departureDate: string | null
   arrivalDate: string | null
   status: string | null
   price: string | null
+  departureCity?: string | null
+  arrivalCity?: string | null
   availableSchedules?: any[]
 }
 
@@ -89,9 +103,23 @@ export class GetTripsUseCase {
         data = tripResults.filter(Boolean) as typeof data
       }
 
+      const allDrivers = await db.select().from(drivers)
+      const allVehicles = await db.select().from(vehicles)
+
       const enrichedData = data.map((trip) => {
         const availableSchedules = allSchedules.filter((s) => s.tripId === trip.id)
-        return { ...trip, availableSchedules }
+        const route = allRoutes.find((r) => r.id === trip.routeId)
+        const vehicle = allVehicles?.find((v) => v.id === trip.vehicleId) || null
+        const driver = allDrivers?.find((d) => d.id === trip.driverId) || null
+        return {
+          ...trip,
+          availableSchedules,
+          departureCity: route?.departureCity || null,
+          arrivalCity: route?.arrivalCity || null,
+          routeName: route ? `${route.departureCity} - ${route.arrivalCity}` : null,
+          vehicleName: vehicle ? vehicle.model : null,
+          driverName: driver ? `${driver.firstName} ${driver.lastName}` : null
+        }
       })
 
       const paginatedData = enrichedData.slice(offset, offset + limitNum)

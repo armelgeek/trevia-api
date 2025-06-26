@@ -10,6 +10,7 @@ import {
   TripController,
   VehicleController
 } from './infrastructure/controllers'
+import { DriverController } from './infrastructure/controllers/driver.controller'
 import { LocationController } from './infrastructure/controllers/location.controller'
 import { ReservationController } from './infrastructure/controllers/reservation.controller'
 import { WebhookController } from './infrastructure/controllers/webhook.controller'
@@ -26,7 +27,8 @@ const app = new App([
   new PricingController(),
   new ReservationController(),
   new WebhookController(),
-  new LocationController()
+  new LocationController(),
+  new DriverController()
 ]).getApp()
 
 const PORT = Bun.env.PORT || 3000

@@ -26,13 +26,18 @@ export class TripController implements Routes {
     const tripSchema = z.object({
       id: z.string(),
       routeId: z.string(),
+      routeName: z.string().nullable(),
       vehicleId: z.string(),
+      vehicleName: z.string().nullable(),
       driverId: z.string(),
+      driverName: z.string().nullable(),
       departureDate: z.string().nullable(),
       departureTime: z.string().nullable(),
       arrivalDate: z.string().nullable(),
       status: z.string().nullable(),
-      price: z.string().nullable()
+      price: z.string().nullable(),
+      departureCity: z.string().nullable(),
+      arrivalCity: z.string().nullable()
     })
 
     const listTripsResponseSchema = z.object({
@@ -85,9 +90,14 @@ export class TripController implements Routes {
         return c.json({ error: result.error || 'Erreur lors de la récupération des voyages' }, 400)
       }
 
+      // Adapter la réponse pour ne pas exposer l'objet vehicle complet
+      const data = result.data?.map((trip) => ({
+        ...trip
+      }))
+
       return c.json(
         {
-          data: result.data,
+          data,
           page: result.page,
           limit: result.limit,
           total: result.total
