@@ -376,19 +376,4 @@ L'API Trevia offre une gamme complète de fonctionnalités pour gérer votre pla
   - Accéder à des statistiques et rapports détaillés
   - Gérer les configurations de la plateforme
 
-Explorez la documentation complète pour en savoir plus sur chaque fonctionnalité et comment les utiliser efficacement.
-// feat: initial project setup with TypeScript and dependencies - 2025-06-21
-
-// feat: configure ESLint and Prettier - 2025-06-21
-
-// feat: setup database with Drizzle ORM - 2025-06-21
-
-// feat: add Docker configuration - 2025-06-21
-
-// docs: create project documentation structure - 2025-06-21
-
-// feat: setup database with Drizzle ORM - Development on 2025-05-22
-
-// feat: add Docker configuration - Development on 2025-05-22
-
-// docs: create project documentation structure - Development on 2025-05-22
+Explorez la documentation complète pour en savoir plus sur chaque fonctionnalité et comment les utiliser efficacement
