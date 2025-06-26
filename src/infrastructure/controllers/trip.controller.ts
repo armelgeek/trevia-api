@@ -1,28 +1,19 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
+import { CreateTripUseCase } from '@/application/use-cases/trip/create-trip.use-case'
+import { DeleteTripUseCase } from '@/application/use-cases/trip/delete-trip.use-case'
+import { UpdateTripUseCase } from '@/application/use-cases/trip/update-trip.use-case'
 import { GetScheduleSeatsUseCase } from '../../application/use-cases/trip/get-schedule-seats.use-case'
 import { GetTripByIdUseCase } from '../../application/use-cases/trip/get-trip-by-id.use-case'
 import { GetTripSeatsUseCase } from '../../application/use-cases/trip/get-trip-seats.use-case'
 import { GetTripsUseCase } from '../../application/use-cases/trip/get-trips.use-case'
+import { TripRepositoryImpl } from '../repositories/trip.repository'
 import type { Routes } from '../../domain/types/route.type'
 
 export class TripController implements Routes {
   public controller = new OpenAPIHono()
 
   public initRoutes() {
-    const listTripsQuerySchema = z.object({
-      page: z.string().optional(),
-      limit: z.string().optional(),
-      sort: z.string().optional(),
-      filter: z.string().optional(),
-      departureCity: z.string().optional(),
-      arrivalCity: z.string().optional(),
-      date: z.string().optional(),
-      passengers: z.string().optional(),
-      scheduleType: z.string().optional(),
-      classType: z.string().optional()
-    })
-
     const tripSchema = z.object({
       id: z.string(),
       routeId: z.string(),
@@ -32,7 +23,7 @@ export class TripController implements Routes {
       driverId: z.string(),
       driverName: z.string().nullable(),
       departureDate: z.string().nullable(),
-      departureTime: z.string().nullable(),
+      departureDate: z.string().nullable(),
       arrivalDate: z.string().nullable(),
       status: z.string().nullable(),
       price: z.string().nullable(),
@@ -40,70 +31,28 @@ export class TripController implements Routes {
       arrivalCity: z.string().nullable()
     })
 
-    const listTripsResponseSchema = z.object({
-      data: z.array(tripSchema),
-      page: z.number(),
-      limit: z.number(),
-      total: z.number()
-    })
-
     const tripIdParamSchema = z.object({
       id: z.string().min(1, 'Trip ID requis')
     })
 
-    const getTripsRoute = createRoute({
+    // GET /trips
+    const listTripsRoute = createRoute({
       method: 'get',
       path: '/trips',
-      request: {
-        query: listTripsQuerySchema
-      },
       responses: {
         200: {
-          content: {
-            'application/json': {
-              schema: listTripsResponseSchema
-            }
-          },
-          description: 'Liste paginée des voyages disponibles'
-        },
-        400: {
-          content: {
-            'application/json': {
-              schema: z.object({ error: z.string() })
-            }
-          },
-          description: 'Paramètres de requête invalides'
+          content: { 'application/json': { schema: z.object({ data: z.array(tripSchema), total: z.number() }) } },
+          description: 'Liste des voyages'
         }
       },
       tags: ['Trips'],
-      summary: 'Obtenir la liste des voyages',
-      description: 'Retourne une liste paginée des voyages disponibles avec filtres optionnels'
+      summary: 'Lister les voyages',
+      description: 'Retourne la liste des voyages.'
     })
-
-    this.controller.openapi(getTripsRoute, async (c: any) => {
-      const query = c.req.valid('query')
-
-      const getTripsUseCase = new GetTripsUseCase()
-      const result = await getTripsUseCase.execute(query)
-
-      if (!result.success) {
-        return c.json({ error: result.error || 'Erreur lors de la récupération des voyages' }, 400)
-      }
-
-      // Adapter la réponse pour ne pas exposer l'objet vehicle complet
-      const data = result.data?.map((trip) => ({
-        ...trip
-      }))
-
-      return c.json(
-        {
-          data,
-          page: result.page,
-          limit: result.limit,
-          total: result.total
-        },
-        200
-      )
+    this.controller.openapi(listTripsRoute, async (c: any) => {
+      const useCase = new GetTripsUseCase()
+      const result = await useCase.execute({})
+      return c.json({ data: result.data, total: result.total }, 200)
     })
 
     const getTripByIdRoute = createRoute({
@@ -294,6 +243,106 @@ export class TripController implements Routes {
       }
 
       return c.json(result.data, 200)
+    })
+
+    // --- Endpoint POST /trips ---
+    const createTripSchema = z.object({
+      routeId: z.string(),
+      driverId: z.string(),
+      vehicleId: z.string(),
+      departureDate: z.string().nullable(),
+      price: z.number().nullable()
+    })
+    const createTripRoute = createRoute({
+      method: 'post',
+      path: '/trips',
+      request: { body: { content: { 'application/json': { schema: createTripSchema } } } },
+      responses: {
+        201: { content: { 'application/json': { schema: tripSchema } }, description: 'Voyage créé' },
+        400: { content: { 'application/json': { schema: z.object({ error: z.string() }) } }, description: 'Erreur' }
+      },
+      tags: ['Trips'],
+      summary: 'Créer un voyage',
+      description: 'Crée un nouveau voyage.'
+    })
+    this.controller.openapi(createTripRoute, async (c: any) => {
+      try {
+        const input = c.req.valid('json')
+        console.log('input', input);
+        const tripRepository = new TripRepositoryImpl()
+        const useCase = new CreateTripUseCase(tripRepository)
+        const result = await useCase.execute(input)
+        return c.json(result, 201)
+      } catch (error: any) {
+        return c.json({ error: error?.message || 'Erreur création voyage' }, 400)
+      }
+    })
+
+    // --- Endpoint PUT /trips/:id ---
+    const updateTripSchema = z.object({
+      routeId: z.string().optional(),
+      driverId: z.string().optional(),
+      vehicleId: z.string().optional(),
+      departureDate: z.string().nullable().optional(),
+      arrivalDate: z.string().nullable().optional(),
+      status: z.string().optional(),
+      price: z.string().nullable().optional()
+    })
+    const updateTripRoute = createRoute({
+      method: 'put',
+      path: '/trips/{id}',
+      request: {
+        params: tripIdParamSchema,
+        body: { content: { 'application/json': { schema: updateTripSchema } } }
+      },
+      responses: {
+        200: { content: { 'application/json': { schema: tripSchema } }, description: 'Voyage mis à jour' },
+        404: {
+          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          description: 'Voyage non trouvé'
+        }
+      },
+      tags: ['Trips'],
+      summary: 'Mettre à jour un voyage',
+      description: 'Met à jour les informations d’un voyage.'
+    })
+    this.controller.openapi(updateTripRoute, async (c: any) => {
+      const { id } = c.req.valid('param')
+      const input = c.req.valid('json')
+      const tripRepository = new TripRepositoryImpl()
+      const useCase = new UpdateTripUseCase(tripRepository)
+      const result = await useCase.execute(id, input)
+      if (!result) {
+        return c.json({ error: 'Voyage non trouvé' }, 404)
+      }
+      return c.json(result, 200)
+    })
+
+    // --- Endpoint DELETE /trips/:id ---
+    const deleteTripRoute = createRoute({
+      method: 'delete',
+      path: '/trips/{id}',
+      request: { params: tripIdParamSchema },
+      responses: {
+        204: { description: 'Voyage supprimé' },
+        404: {
+          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          description: 'Voyage non trouvé'
+        }
+      },
+      tags: ['Trips'],
+      summary: 'Supprimer un voyage',
+      description: 'Supprime un voyage existant par son ID.'
+    })
+    this.controller.openapi(deleteTripRoute, async (c: any) => {
+      const { id } = c.req.valid('param')
+      const tripRepository = new TripRepositoryImpl()
+      const useCase = new DeleteTripUseCase(tripRepository)
+      const deleted = await useCase.execute(id)
+      if (!deleted) {
+        return c.json({ error: 'Voyage non trouvé' }, 404)
+      }
+      return c.body(null, 204)
     })
   }
 }
