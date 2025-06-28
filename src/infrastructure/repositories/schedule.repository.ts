@@ -1,7 +1,7 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 // src/infrastructure/repositories/schedule.repository.ts
 import { db } from '../database/db'
-import { schedules } from '../database/schema/schema'
+import { schedules, seats, bookings, bookingSeats } from '../database/schema/schema'
 import type { ScheduleRepository } from '../../domain/repositories/schedule.repository.interface'
 import type { Schedule, ScheduleFilters } from '../../domain/types/schedule.type'
 import { randomUUID } from 'node:crypto'
@@ -71,5 +71,72 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
   async delete(id: string): Promise<boolean> {
     await db.delete(schedules).where(eq(schedules.id, id)).execute()
     return true
+  }
+
+  async getSchedulesSeats(tripId: string) {
+    // Get all schedules for the trip
+    const schedulesRows = await db
+      .select()
+      .from(schedules)
+      .where(eq(schedules.tripId, tripId))
+      .execute();
+
+    if (!schedulesRows.length) return [];
+
+    // For each schedule, get all seats and their booking status
+    const results = await Promise.all(
+      schedulesRows.map(async (schedule) => {
+        // Get all seats for this schedule
+        const seatRows = await db
+          .select({
+            id: seats.id,
+            seatNumber: seats.seatNumber,
+          })
+          .from(seats)
+          .where(eq(seats.scheduleId, schedule.id))
+          .execute();
+
+        // Get all bookings for this schedule (not cancelled)
+        const bookingRows = await db
+          .select({ id: bookings.id })
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.scheduleId, schedule.id),
+              // Only consider bookings that are not cancelled
+              // (assuming status 'cancelled' means not active)
+              // If you have a different status for active bookings, adjust here
+              eq(bookings.status, 'confirmed')
+            )
+          )
+          .execute();
+        const bookingIds = bookingRows.map((b) => b.id);
+
+        // Get all bookingSeats for these bookings
+        let occupiedSeatIds: string[] = [];
+        if (bookingIds.length > 0) {
+          const bookingSeatRows = await db
+            .select({ seatId: bookingSeats.seatId })
+            .from(bookingSeats)
+            .where(inArray(bookingSeats.bookingId, bookingIds))
+            .execute();
+          occupiedSeatIds = bookingSeatRows.map((bs) => bs.seatId || '').filter((id): id is string => !!id);
+        }
+
+        // Compose seat status
+        const seatsWithStatus = seatRows.map((seat) => ({
+          seatNumber: seat.seatNumber || '',
+          status: occupiedSeatIds.includes(seat.id) ? 'occupied' : 'free',
+        }));
+
+        return {
+          scheduleId: schedule.id,
+          departureTime: schedule.departureTime || '',
+          arrivalTime: schedule.arrivalTime || '',
+          seats: seatsWithStatus,
+        };
+      })
+    );
+    return results;
   }
 }

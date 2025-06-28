@@ -115,6 +115,49 @@ export class ScheduleController implements Routes {
       return c.json(result.data, 201)
     })
 
+    // GET /api/schedules/seats?tripId=...
+    const getSchedulesSeatsQuerySchema = z.object({
+      tripId: z.string().min(1, 'tripId requis')
+    })
+    const seatAvailabilitySchema = z.object({
+      scheduleId: z.string(),
+      departureTime: z.string(),
+      arrivalTime: z.string(),
+      seats: z.array(
+        z.object({
+          seatNumber: z.string(),
+          status: z.enum(['free', 'occupied'])
+        })
+      )
+    })
+    const getSchedulesSeatsRoute = createRoute({
+      method: 'get',
+      path: '/schedules/seats',
+      request: { query: getSchedulesSeatsQuerySchema },
+      responses: {
+        200: {
+          content: { 'application/json': { schema: z.object({ data: z.array(seatAvailabilitySchema) }) } },
+          description: 'Disponibilité des sièges pour chaque schedule d’un trip'
+        },
+        400: {
+          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          description: 'Erreur de validation'
+        }
+      },
+      tags: ['Schedules'],
+      summary: 'Voir la disponibilité des sièges par horaire',
+      description: 'Retourne la liste des horaires et la disponibilité des sièges pour un tripId donné'
+    })
+    this.controller.openapi(getSchedulesSeatsRoute, async (c: any) => {
+      const { tripId } = c.req.valid('query')
+      if (!tripId) {
+        return c.json({ error: 'tripId requis' }, 400)
+      }
+      const scheduleRepository = new ScheduleRepositoryImpl()
+      const results = await scheduleRepository.getSchedulesSeats(tripId)
+      return c.json({ data: results }, 200)
+    })
+
     // GET /api/schedules/{id}
     const scheduleIdParamSchema = z.object({ id: z.string().min(1, 'Schedule ID requis') })
     const getScheduleRoute = createRoute({
