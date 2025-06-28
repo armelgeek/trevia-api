@@ -163,9 +163,9 @@ export const trips = pgTable('trips', {
 // SCHEDULE
 export const schedules = pgTable('schedules', {
   id: text('id').primaryKey(),
-  tripId: text('trip_id').references(() => trips.id),
-  departureTime: timestamp('departure_time'),
-  arrivalTime: timestamp('arrival_time'),
+  tripId: text('trip_id').notNull().references(() => trips.id),
+  departureTime: text('departure_time'),
+  arrivalTime: text('arrival_time'),
   status: text('status'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()

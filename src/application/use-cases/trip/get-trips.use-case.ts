@@ -73,7 +73,9 @@ export class GetTripsUseCase {
           if (tripDate !== date) return false
         }
         if (scheduleType && schedule?.departureTime) {
-          const hour = schedule.departureTime.getHours()
+          // Si departureTime est au format "HH:mm", extraire l'heure sinon parser comme date
+          const hour  = Number.parseInt(schedule.departureTime.split(':')[0], 10)
+          
           if (scheduleType === 'Matin' && (hour < 6 || hour >= 12)) return false
           if (scheduleType === 'Après-midi' && (hour < 12 || hour >= 18)) return false
           if (scheduleType === 'Soir' && (hour < 18 || hour >= 24)) return false

@@ -5,6 +5,6 @@ export interface Schedule {
   departureTime: string
   arrivalTime: string
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }

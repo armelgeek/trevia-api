@@ -70,7 +70,7 @@ export class ScheduleController implements Routes {
       tripId: z.string().min(1, 'tripId requis'),
       departureTime: z.string(),
       arrivalTime: z.string(),
-      status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled'])
+      status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']).optional()
     })
 
     const createScheduleRoute = createRoute({
@@ -102,9 +102,13 @@ export class ScheduleController implements Routes {
 
     this.controller.openapi(createScheduleRoute, async (c: any) => {
       const input = c.req.valid('json')
+      const inputData = {
+        ...input, 
+        status: input.status ? input.status: 'scheduled',
+      }
       const scheduleRepository = new ScheduleRepositoryImpl()
       const useCase = new CreateScheduleUseCase(scheduleRepository)
-      const result = await useCase.execute(input)
+      const result = await useCase.execute(inputData)
       if (!result.success) {
         return c.json({ error: result.error }, 400)
       }

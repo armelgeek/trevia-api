@@ -171,9 +171,15 @@ export class AdminController implements Routes {
             seats: booking.seats,
             seatNumbers: (booking.seats || [])
               .map((s: any) => {
-                const hour = s.schedule && s.schedule.departureTime
-                  ? `(${new Date(s.schedule.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
-                  : ''
+                let hour = ''
+                if (s.schedule && s.schedule.departureTime) {
+                  if (/^\d{2}:\d{2}$/.test(s.schedule.departureTime)) {
+                    hour = `(${s.schedule.departureTime})`
+                  } else if (typeof s.schedule.departureTime === 'string' && !isNaN(Date.parse(s.schedule.departureTime))) {
+                    const d = new Date(s.schedule.departureTime)
+                    hour = `(${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+                  }
+                }
                 return s.seatNumber ? `${s.seatNumber} ${hour}`.trim() : null
               })
               .filter(Boolean)

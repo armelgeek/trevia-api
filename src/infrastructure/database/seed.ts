@@ -262,23 +262,15 @@ async function completeSeed() {
     if (!trip.departureDate) continue
 
     for (const schedule of standardSchedules) {
-      const departureDateTime = new Date(trip.departureDate)
-      const [depHour, depMin, depSec] = schedule.departure.split(':')
-      departureDateTime.setHours(Number.parseInt(depHour), Number.parseInt(depMin), Number.parseInt(depSec))
-
-      const arrivalDateTime = new Date(trip.departureDate)
-      const [arrHour, arrMin, arrSec] = schedule.arrival.split(':')
-      arrivalDateTime.setHours(Number.parseInt(arrHour), Number.parseInt(arrMin), Number.parseInt(arrSec))
-
-      if (arrivalDateTime < departureDateTime) {
-        arrivalDateTime.setDate(arrivalDateTime.getDate() + 1)
-      }
+      // departureTime et arrivalTime au format HH:mm
+      const departureTime = schedule.departure.slice(0, 5) // "08:00"
+      const arrivalTime = schedule.arrival.slice(0, 5) // "12:30", etc.
 
       schedulesToInsert.push({
         id: randomUUID(),
         tripId: trip.id,
-        departureTime: departureDateTime,
-        arrivalTime: arrivalDateTime,
+        departureTime,
+        arrivalTime,
         status: 'available',
         createdAt: new Date(),
         updatedAt: new Date()

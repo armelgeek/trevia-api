@@ -4,32 +4,33 @@ import { db } from '../database/db'
 import { schedules } from '../database/schema/schema'
 import type { ScheduleRepository } from '../../domain/repositories/schedule.repository.interface'
 import type { Schedule, ScheduleFilters } from '../../domain/types/schedule.type'
+import { randomUUID } from 'node:crypto'
 
 function toSchedule(row: any): Schedule {
+  
   return {
     id: row.id,
     tripId: row.tripId,
-    departureTime: row.departureTime ? new Date(row.departureTime).toISOString() : '',
-    arrivalTime: row.arrivalTime ? new Date(row.arrivalTime).toISOString() : '',
-    status: row.status,
-    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '',
-    updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : ''
+    departureTime: row.departureTime || '',
+    arrivalTime: row.arrivalTime || '',
+    status: row.status
   }
 }
 
 export class ScheduleRepositoryImpl implements ScheduleRepository {
   async create(data: Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>): Promise<Schedule> {
-    const now = new Date().toISOString()
+   
     const [row] = await db
       .insert(schedules)
+      //@ts-ignore
+      // Note: 'createdAt' and 'updatedAt' are set to current date in the database
+      // if you want to set them manually, you can uncomment the lines below
       .values({
-        // @ts-ignore
+        id: randomUUID(),
         tripId: data.tripId,
-        departureTime: new Date(data.departureTime),
-        arrivalTime: new Date(data.arrivalTime),
-        status: data.status,
-        createdAt: now,
-        updatedAt: now
+        departureTime: data.departureTime,
+        arrivalTime: data.arrivalTime,
+        status: data.status
       })
       .returning()
     return toSchedule(row)
