@@ -120,6 +120,202 @@
       - Rôle supprimé
     - Paramètres : path (roleId), header (Authorization)
 
+- [ ] **Gestion des conducteurs (drivers)**
+  - [ ] Lister les conducteurs (`GET /api/drivers`)
+    - Use case : Consultation des conducteurs (admin)
+    - Scénario nominal :
+      1. L’admin consulte la liste paginée
+    - Scénarios d’exception :
+      - Accès non autorisé
+    - Critères d’acceptation :
+      - Liste paginée retournée
+    - Paramètres : query (page, limit, sort, filter), header (Authorization)
+  - [ ] Détail d’un conducteur (`GET /api/drivers/{id}`)
+    - Use case : Voir le détail d’un conducteur (admin)
+    - Scénario nominal :
+      1. L’admin consulte le détail
+    - Scénarios d’exception :
+      - Conducteur non trouvé
+    - Critères d’acceptation :
+      - Détail correct affiché
+    - Paramètres : path (id), header (Authorization)
+  - [ ] Créer un conducteur (`POST /api/drivers`)
+    - Use case : Ajouter un conducteur (admin)
+    - Scénario nominal :
+      1. L’admin soumet le formulaire
+      2. Le conducteur est créé
+    - Scénarios d’exception :
+      - Champs manquants
+    - Critères d’acceptation :
+      - Conducteur ajouté
+    - Paramètres : body (voir schéma), header (Authorization)
+    - **Schéma (body)** :
+      ```json
+      {
+        "firstName": "string",
+        "lastName": "string",
+        "license": "string",
+        "certifications": "string[]",
+        "phone": "string",
+        "status": "string"
+      }
+      ```
+  - [ ] Mettre à jour un conducteur (`PUT /api/drivers/{id}`)
+    - Use case : Modifier un conducteur (admin)
+    - Scénario nominal :
+      1. L’admin modifie les infos
+      2. Les modifications sont enregistrées
+    - Scénarios d’exception :
+      - Conducteur non trouvé
+    - Critères d’acceptation :
+      - Modifications visibles
+    - Paramètres : path (id), body (voir schéma), header (Authorization)
+    - **Schéma (body)** :
+      ```json
+      {
+        "firstName"?: "string",
+        "lastName"?: "string",
+        "license"?: "string",
+        "certifications"?: "string[]",
+        "phone"?: "string",
+        "status"?: "string"
+      }
+      ```
+
+- [ ] **Gestion des routes**
+  - [ ] Lister les routes (`GET /api/routes`)
+    - Use case : Consultation des routes (admin)
+    - Scénario nominal :
+      1. L’admin consulte la liste paginée
+    - Scénarios d’exception :
+      - Accès non autorisé
+    - Critères d’acceptation :
+      - Liste paginée retournée
+    - Paramètres : query (page, limit, sort, filter), header (Authorization)
+  - [ ] Détail d’une route (`GET /api/routes/{id}`)
+    - Use case : Voir le détail d’une route (admin)
+    - Scénario nominal :
+      1. L’admin consulte le détail
+    - Scénarios d’exception :
+      - Route non trouvée
+    - Critères d’acceptation :
+      - Détail correct affiché
+    - Paramètres : path (id), header (Authorization)
+  - [ ] Créer une route (`POST /api/routes`)
+    - Use case : Ajouter une route (admin)
+    - Scénario nominal :
+      1. L’admin soumet le formulaire
+      2. La route est créée
+    - Scénarios d’exception :
+      - Champs manquants
+    - Critères d’acceptation :
+      - Route ajoutée
+    - Paramètres : body (voir schéma), header (Authorization)
+    - **Schéma (body)** :
+      ```json
+      {
+        "departureCity": "string",
+        "arrivalCity": "string",
+        "distanceKm": "string",
+        "duration": "string",
+        "basePrice": "string",
+        "routeType": "string",
+        "status": "string"
+      }
+      ```
+  - [ ] Mettre à jour une route (`PUT /api/routes/{id}`)
+    - Use case : Modifier une route (admin)
+    - Scénario nominal :
+      1. L’admin modifie les infos
+      2. Les modifications sont enregistrées
+    - Scénarios d’exception :
+      - Route non trouvée
+    - Critères d’acceptation :
+      - Modifications visibles
+    - Paramètres : path (id), body (voir schéma), header (Authorization)
+    - **Schéma (body)** :
+      ```json
+      {
+        "departureCity"?: "string",
+        "arrivalCity"?: "string",
+        "distanceKm"?: "string",
+        "duration"?: "string",
+        "basePrice"?: "string",
+        "routeType"?: "string",
+        "status"?: "string"
+      }
+      ```
+
+- [ ] **Gestion des horaires (schedules)**
+  - [ ] Lister les horaires (`GET /api/schedules`)
+    - Use case : Consultation des horaires d’un voyage (admin)
+    - Scénario nominal :
+      1. L’admin ou l’utilisateur consulte la liste paginée des horaires pour un voyage donné (`tripId` requis)
+    - Scénarios d’exception :
+      - Accès non autorisé
+      - `tripId` manquant ou invalide
+    - Critères d’acceptation :
+      - Liste paginée retournée, filtrée par `tripId`
+    - Paramètres : query (tripId, page, limit), header (Authorization)
+  - [ ] Détail d’un horaire (`GET /api/schedules/{id}`)
+    - Use case : Voir le détail d’un horaire
+    - Scénario nominal :
+      1. L’admin ou l’utilisateur consulte le détail d’un horaire
+    - Scénarios d’exception :
+      - Horaire non trouvé
+    - Critères d’acceptation :
+      - Détail correct affiché
+    - Paramètres : path (id), header (Authorization)
+  - [ ] Créer un horaire (`POST /api/schedules`)
+    - Use case : Ajouter un horaire à un voyage
+    - Scénario nominal :
+      1. L’admin soumet le formulaire avec un `tripId` valide
+      2. L’horaire est créé
+    - Scénarios d’exception :
+      - `tripId` manquant ou invalide
+      - Champs obligatoires manquants
+    - Critères d’acceptation :
+      - Horaire ajouté
+    - Paramètres : body (tripId, departureTime, arrivalTime, status, ...), header (Authorization)
+    - Exemple de payload :
+      ```json
+      {
+        "tripId": "string",
+        "departureTime": "2025-07-01T08:00:00Z",
+        "arrivalTime": "2025-07-01T12:00:00Z",
+        "status": "active"
+      }
+      ```
+  - [ ] Mettre à jour un horaire (`PUT /api/schedules/{id}`)
+    - Use case : Modifier un horaire
+    - Scénario nominal :
+      1. L’admin modifie les infos d’un horaire
+      2. Les modifications sont enregistrées
+    - Scénarios d’exception :
+      - Horaire non trouvé
+      - `tripId` manquant ou invalide
+    - Critères d’acceptation :
+      - Modifications visibles
+    - Paramètres : path (id), body (voir schéma), header (Authorization)
+    - Exemple de payload :
+      ```json
+      {
+        "tripId": "string",
+        "departureTime": "2025-07-01T09:00:00Z",
+        "arrivalTime": "2025-07-01T13:00:00Z",
+        "status": "inactive"
+      }
+      ```
+  - [ ] Supprimer un horaire (`DELETE /api/schedules/{id}`)
+    - Use case : Suppression d’un horaire
+    - Scénario nominal :
+      1. L’admin supprime un horaire
+    - Scénarios d’exception :
+      - Horaire non trouvé
+    - Critères d’acceptation :
+      - Horaire supprimé
+    - Paramètres : path (id), header (Authorization)
+
 ## Tâches Frontend (utilisateur standard)
 
 - [ ] **Réservations**

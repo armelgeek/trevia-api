@@ -23,8 +23,6 @@ export class TripController implements Routes {
       driverId: z.string(),
       driverName: z.string().nullable(),
       departureDate: z.string().nullable(),
-      departureDate: z.string().nullable(),
-      arrivalDate: z.string().nullable(),
       status: z.string().nullable(),
       price: z.string().nullable(),
       departureCity: z.string().nullable(),
@@ -39,6 +37,12 @@ export class TripController implements Routes {
     const listTripsRoute = createRoute({
       method: 'get',
       path: '/trips',
+      request: {
+        params: z.object({
+          page: z.string().optional(),
+          limit: z.string().optional()
+        })
+      },
       responses: {
         200: {
           content: { 'application/json': { schema: z.object({ data: z.array(tripSchema), total: z.number() }) } },
@@ -51,8 +55,11 @@ export class TripController implements Routes {
     })
     this.controller.openapi(listTripsRoute, async (c: any) => {
       const useCase = new GetTripsUseCase()
-      const result = await useCase.execute({})
-      return c.json({ data: result.data, total: result.total }, 200)
+      const result = await useCase.execute({
+        page: c.req.query('page') || '1',
+        limit: c.req.query('pageSize') || '10',
+      })
+      return c.json({ data: result.data, total: result.total, limit: result.limit, page: result.page }, 200)
     })
 
     const getTripByIdRoute = createRoute({
@@ -268,7 +275,6 @@ export class TripController implements Routes {
     this.controller.openapi(createTripRoute, async (c: any) => {
       try {
         const input = c.req.valid('json')
-        console.log('input', input);
         const tripRepository = new TripRepositoryImpl()
         const useCase = new CreateTripUseCase(tripRepository)
         const result = await useCase.execute(input)
@@ -284,7 +290,6 @@ export class TripController implements Routes {
       driverId: z.string().optional(),
       vehicleId: z.string().optional(),
       departureDate: z.string().nullable().optional(),
-      arrivalDate: z.string().nullable().optional(),
       status: z.string().optional(),
       price: z.string().nullable().optional()
     })
@@ -307,15 +312,17 @@ export class TripController implements Routes {
       description: 'Met à jour les informations d’un voyage.'
     })
     this.controller.openapi(updateTripRoute, async (c: any) => {
-      const { id } = c.req.valid('param')
-      const input = c.req.valid('json')
-      const tripRepository = new TripRepositoryImpl()
-      const useCase = new UpdateTripUseCase(tripRepository)
-      const result = await useCase.execute(id, input)
-      if (!result) {
-        return c.json({ error: 'Voyage non trouvé' }, 404)
+      try {
+        const { id } = c.req.valid('param')
+        const input = c.req.valid('json')
+        const tripRepository = new TripRepositoryImpl()
+        const useCase = new UpdateTripUseCase(tripRepository)
+        const result = await useCase.execute(id, input)
+
+        return c.json(result, 200)
+      } catch (error: any) {
+        return c.json({ error: error?.message || 'Erreur mise à jour voyage' }, 400)
       }
-      return c.json(result, 200)
     })
 
     // --- Endpoint DELETE /trips/:id ---
@@ -335,14 +342,23 @@ export class TripController implements Routes {
       description: 'Supprime un voyage existant par son ID.'
     })
     this.controller.openapi(deleteTripRoute, async (c: any) => {
-      const { id } = c.req.valid('param')
-      const tripRepository = new TripRepositoryImpl()
-      const useCase = new DeleteTripUseCase(tripRepository)
-      const deleted = await useCase.execute(id)
-      if (!deleted) {
-        return c.json({ error: 'Voyage non trouvé' }, 404)
+      try {
+        const { id } = c.req.valid('param')
+        console.log('idid', id)
+        const tripRepository = new TripRepositoryImpl()
+        const useCase = new DeleteTripUseCase(tripRepository)
+        await useCase.execute(id)
+
+        return c.body(
+          {
+            success: true
+          },
+          204
+        )
+      } catch (error: any) {
+        console.error('Erreur lors de la suppression du voyage:', error)
+        return c.json({ error: error?.message || 'Erreur suppression voyage' }, 400)
       }
-      return c.body(null, 204)
     })
   }
 }

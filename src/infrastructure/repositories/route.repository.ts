@@ -62,12 +62,4 @@ export class RouteRepositoryImpl implements RouteRepository {
     await db.delete(routes).where(eq(routes.id, id))
     return true
   }
-
-  // Optionnel : recherche avancée (exemple de base)
-  // search = async (filters: Partial<Omit<Route, 'id'>>): Promise<Route[]> => {
-  //   // À adapter selon les besoins
-  //   let query = db.select().from(routes)
-  //   // ...ajouter des conditions dynamiquement
-  //   return query
-  // }
 }

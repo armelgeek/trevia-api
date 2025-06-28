@@ -154,9 +154,10 @@ export const trips = pgTable('trips', {
   vehicleId: text('vehicle_id').references(() => vehicles.id),
   driverId: text('driver_id').references(() => drivers.id),
   departureDate: timestamp('departure_date'),
-  arrivalDate: timestamp('arrival_date'),
   status: text('status'),
-  price: text('price')
+  price: text('price'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date())
 })
 
 // SCHEDULE

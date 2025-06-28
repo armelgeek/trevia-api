@@ -13,6 +13,7 @@ import {
 import { DriverController } from './infrastructure/controllers/driver.controller'
 import { LocationController } from './infrastructure/controllers/location.controller'
 import { ReservationController } from './infrastructure/controllers/reservation.controller'
+import { ScheduleController } from './infrastructure/controllers/schedule.controller'
 import { WebhookController } from './infrastructure/controllers/webhook.controller'
 
 const app = new App([
@@ -28,7 +29,8 @@ const app = new App([
   new ReservationController(),
   new WebhookController(),
   new LocationController(),
-  new DriverController()
+  new DriverController(),
+  new ScheduleController()
 ]).getApp()
 
 const PORT = Bun.env.PORT || 3000

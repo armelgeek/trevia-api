@@ -136,8 +136,53 @@ export class AdminController implements Routes {
           page: pageNum,
           limit: limitNum
         })
-        return c.json(result, 200)
-      } catch {
+        // Enrichissement à plat pour chaque réservation
+        const enriched = result.data.map((booking: any) => {
+          const trip = booking.trip || {}
+          const driver = booking.driver || {}
+          const vehicle = booking.vehicle || {}
+          const route = booking.route || {}
+          const user = booking.user || {}
+          return {
+            bookingId: booking.id,
+            tripId: booking.tripId,
+            routeLabel: route.departureCity && route.arrivalCity ? `${route.departureCity} - ${route.arrivalCity}` : null,
+            departureDate: trip.departureDate || null,
+            // arrivalDate supprimé
+            driverId: driver.id || null,
+            driverName: driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : null,
+            driverPhone: driver.phone || null,
+            vehicleId: vehicle.id || null,
+            vehicleModel: vehicle.model || null,
+            vehiclePlate: vehicle.plate || null,
+            // Infos utilisateur à plat
+            userId: user.id || null,
+            userName: user.name || null,
+            userFirstname: user.firstname || null,
+            userLastname: user.lastname || null,
+            userEmail: user.email || null,
+            userFullName: (user.firstname && user.lastname)
+              ? `${user.firstname} ${user.lastname}`
+              : (user.name || null),
+            seatIds: booking.seatIds,
+            totalPrice: booking.totalPrice ?? '0',
+            status: booking.status ?? 'pending',
+            bookedAt: booking.bookedAt ? booking.bookedAt : null,
+            seats: booking.seats,
+            seatNumbers: (booking.seats || [])
+              .map((s: any) => {
+                const hour = s.schedule && s.schedule.departureTime
+                  ? `(${new Date(s.schedule.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+                  : ''
+                return s.seatNumber ? `${s.seatNumber} ${hour}`.trim() : null
+              })
+              .filter(Boolean)
+              .join(', '),
+          }
+        })
+        return c.json({ ...result, data: enriched }, 200)
+      } catch(error: any) {
+        console.log('err',error);
         return c.json({ error: 'Erreur lors de la récupération des réservations' }, 400)
       }
     })

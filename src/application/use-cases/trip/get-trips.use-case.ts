@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { db } from '../../../infrastructure/database/db/index'
 import {
   bookings,
@@ -33,7 +33,6 @@ interface TripData {
   driverId: string
   driverName?: string | null
   departureDate: string | null
-  arrivalDate: string | null
   status: string | null
   price: string | null
   departureCity?: string | null
@@ -59,7 +58,7 @@ export class GetTripsUseCase {
     const offset = (pageNum - 1) * limitNum
 
     try {
-      let data = await db.select().from(trips)
+      let data = await db.select().from(trips).orderBy(desc(trips.departureDate))
       const allRoutes = await db.select().from(routes)
       const allSchedules = await db.select().from(schedules)
 

@@ -160,10 +160,22 @@ export class BookingController implements Routes {
       }
 
       const booking = result.data
+      const trip = booking.trip || {}
+      const driver = trip.driver || {}
+      const vehicle = trip.vehicle || {}
+      const route = trip.route || {}
       return c.json(
         {
           bookingId: booking.id,
           tripId: booking.tripId,
+          routeLabel: route.departureCity && route.arrivalCity ? `${route.departureCity} - ${route.arrivalCity}` : null,
+          departureDate: trip.departureDate || null,
+          driverId: driver.id || null,
+          driverName: driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : null,
+          driverPhone: driver.phone || null,
+          vehicleId: vehicle.id || null,
+          vehicleModel: vehicle.model || null,
+          vehiclePlate: vehicle.plate || null,
           seatIds: booking.seatIds,
           totalPrice: booking.totalPrice ?? '0',
           status: booking.status ?? 'pending',
