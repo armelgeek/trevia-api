@@ -82,11 +82,7 @@ export class TripRepositoryImpl implements TripRepository {
       updateData.departureDate = updateData.departureDate ? new Date(updateData.departureDate) : null
     }
     updateData.updatedAt = now
-    await db
-      .update(trips)
-      .set(updateData)
-      .where(eq(trips.id, id))
-      .execute()
+    await db.update(trips).set(updateData).where(eq(trips.id, id)).execute()
     const rows = await db.select().from(trips).where(eq(trips.id, id)).execute()
     const row = rows[0]
     return row ? toTrip(row) : null

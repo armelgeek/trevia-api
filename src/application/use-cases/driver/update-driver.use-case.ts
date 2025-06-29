@@ -4,7 +4,7 @@ import type { DriverRepository } from '../../../domain/repositories/driver.repos
 export class UpdateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
-   execute(id: string, input: Partial<Omit<Driver, 'id'>>): Promise<Driver | null> {
+  execute(id: string, input: Partial<Omit<Driver, 'id'>>): Promise<Driver | null> {
     return this.driverRepository.update(id, input)
   }
 }

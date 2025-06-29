@@ -1,12 +1,12 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
+import { DeleteScheduleUseCase } from '@/application/use-cases/schedule/delete-schedule.use-case'
+import { GetScheduleUseCase } from '@/application/use-cases/schedule/get-schedule.use-case'
+import { ListSchedulesUseCase } from '@/application/use-cases/schedule/list-schedules.use-case'
+import { UpdateScheduleUseCase } from '@/application/use-cases/schedule/update-schedule.use-case'
 import { CreateScheduleUseCase } from '../../application/use-cases/schedule/create-schedule.use-case'
 import { ScheduleRepositoryImpl } from '../repositories/schedule.repository'
 import type { Routes } from '../../domain/types/route.type'
-import { ListSchedulesUseCase } from '@/application/use-cases/schedule/list-schedules.use-case'
-import { GetScheduleUseCase } from '@/application/use-cases/schedule/get-schedule.use-case'
-import { UpdateScheduleUseCase } from '@/application/use-cases/schedule/update-schedule.use-case'
-import { DeleteScheduleUseCase } from '@/application/use-cases/schedule/delete-schedule.use-case'
 
 export class ScheduleController implements Routes {
   public controller = new OpenAPIHono()
@@ -103,8 +103,8 @@ export class ScheduleController implements Routes {
     this.controller.openapi(createScheduleRoute, async (c: any) => {
       const input = c.req.valid('json')
       const inputData = {
-        ...input, 
-        status: input.status ? input.status: 'scheduled',
+        ...input,
+        status: input.status ? input.status : 'scheduled'
       }
       const scheduleRepository = new ScheduleRepositoryImpl()
       const useCase = new CreateScheduleUseCase(scheduleRepository)

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { eq, and, or } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '../database/db'
 import { routes } from '../database/schema/schema'
 import type { Route } from '../../domain/models/route.model'
@@ -9,7 +9,7 @@ export class RouteRepositoryImpl implements RouteRepository {
   findAll = async (): Promise<Route[]> => {
     const res = await db.select().from(routes)
     // S'assurer que tous les champs sont string|null (jamais undefined)
-    return res.map(r => ({
+    return res.map((r) => ({
       ...r,
       departureCity: r.departureCity ?? null,
       arrivalCity: r.arrivalCity ?? null,

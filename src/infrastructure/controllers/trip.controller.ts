@@ -57,7 +57,7 @@ export class TripController implements Routes {
       const useCase = new GetTripsUseCase()
       const result = await useCase.execute({
         page: c.req.query('page') || '1',
-        limit: c.req.query('pageSize') || '10',
+        limit: c.req.query('pageSize') || '10'
       })
       return c.json({ data: result.data, total: result.total, limit: result.limit, page: result.page }, 200)
     })

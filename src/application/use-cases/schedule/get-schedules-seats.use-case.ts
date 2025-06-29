@@ -1,8 +1,8 @@
 // src/application/use-cases/schedule/get-schedules-seats.use-case.ts
 import { eq } from 'drizzle-orm'
-import type { ScheduleRepository } from '../../../domain/repositories/schedule.repository.interface'
 import { db } from '../../../infrastructure/database/db'
 import { seats } from '../../../infrastructure/database/schema/schema'
+import type { ScheduleRepository } from '../../../domain/repositories/schedule.repository.interface'
 
 export class GetSchedulesSeatsUseCase {
   constructor(private scheduleRepository: ScheduleRepository) {}

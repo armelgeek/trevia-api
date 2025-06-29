@@ -4,7 +4,7 @@ import type { DriverRepository } from '../../../domain/repositories/driver.repos
 export class GetDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
-   execute(id: string): Promise<Driver | null> {
+  execute(id: string): Promise<Driver | null> {
     return this.driverRepository.findById(id)
   }
 }

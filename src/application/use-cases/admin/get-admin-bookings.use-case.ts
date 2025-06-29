@@ -6,13 +6,12 @@ import {
   bookingSeats,
   drivers,
   routes,
-  trips,
-  vehicles,
-  users,
+  schedules,
   seats,
-  schedules
+  trips,
+  users,
+  vehicles
 } from '../../../infrastructure/database/schema/schema'
-import type { IUseCase } from '../../../domain/types/use-case.type'
 
 export interface GetAdminBookingsRequest {
   page: number
@@ -87,20 +86,26 @@ export class GetAdminBookingsUseCase {
     let allScheduleIds: string[] = []
     if (allSeatIds.length) {
       const seatDetails = await db.select().from(seats).where(inArray(seats.id, allSeatIds))
-      seatDetailsMap = seatDetails.reduce((acc, seat) => {
-        acc[seat.id] = seat
-        return acc
-      }, {} as Record<string, any>)
+      seatDetailsMap = seatDetails.reduce(
+        (acc, seat) => {
+          acc[seat.id] = seat
+          return acc
+        },
+        {} as Record<string, any>
+      )
       allScheduleIds = seatDetails.map((s) => s.scheduleId).filter((id): id is string => !!id)
     }
     // Récupérer les schedules associés aux seats
     let scheduleMap: Record<string, any> = {}
     if (allScheduleIds.length) {
       const scheduleRows = await db.select().from(schedules).where(inArray(schedules.id, allScheduleIds))
-      scheduleMap = scheduleRows.reduce((acc, sch) => {
-        acc[sch.id] = sch
-        return acc
-      }, {} as Record<string, any>)
+      scheduleMap = scheduleRows.reduce(
+        (acc, sch) => {
+          acc[sch.id] = sch
+          return acc
+        },
+        {} as Record<string, any>
+      )
     }
     const data: BookingSummary[] = rows.map((row) => {
       const b = row.bookings
@@ -117,7 +122,10 @@ export class GetAdminBookingsUseCase {
           schedule
         }
       })
-      const seatNumbers = seatsArr.map(s => s.seatNumber).filter(Boolean).join(', ')
+      const seatNumbers = seatsArr
+        .map((s) => s.seatNumber)
+        .filter(Boolean)
+        .join(', ')
       return {
         bookingId: b.id,
         tripId: b.tripId ?? '',
@@ -134,7 +142,7 @@ export class GetAdminBookingsUseCase {
         seatNumbers
       }
     })
- 
+
     return {
       data,
       page,

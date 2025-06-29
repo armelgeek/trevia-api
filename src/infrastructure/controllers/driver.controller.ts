@@ -1,12 +1,12 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
-import type { Routes } from '../../domain/types/route.type'
-import { DriverRepositoryImpl } from '../repositories/driver.repository'
-import { ListDriversUseCase } from '../../application/use-cases/driver/list-drivers.use-case'
-import { GetDriverUseCase } from '../../application/use-cases/driver/get-driver.use-case'
 import { CreateDriverUseCase } from '../../application/use-cases/driver/create-driver.use-case'
-import { UpdateDriverUseCase } from '../../application/use-cases/driver/update-driver.use-case'
 import { DeleteDriverUseCase } from '../../application/use-cases/driver/delete-driver.use-case'
+import { GetDriverUseCase } from '../../application/use-cases/driver/get-driver.use-case'
+import { ListDriversUseCase } from '../../application/use-cases/driver/list-drivers.use-case'
+import { UpdateDriverUseCase } from '../../application/use-cases/driver/update-driver.use-case'
+import { DriverRepositoryImpl } from '../repositories/driver.repository'
+import type { Routes } from '../../domain/types/route.type'
 
 export class DriverController implements Routes {
   public controller = new OpenAPIHono()

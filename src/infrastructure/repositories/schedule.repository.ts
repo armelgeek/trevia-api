@@ -1,13 +1,12 @@
+import { randomUUID } from 'node:crypto'
 import { and, eq, inArray } from 'drizzle-orm'
 // src/infrastructure/repositories/schedule.repository.ts
 import { db } from '../database/db'
-import { schedules, seats, bookings, bookingSeats } from '../database/schema/schema'
+import { bookings, bookingSeats, schedules, seats } from '../database/schema/schema'
 import type { ScheduleRepository } from '../../domain/repositories/schedule.repository.interface'
 import type { Schedule, ScheduleFilters } from '../../domain/types/schedule.type'
-import { randomUUID } from 'node:crypto'
 
 function toSchedule(row: any): Schedule {
-  
   return {
     id: row.id,
     tripId: row.tripId,
@@ -19,7 +18,6 @@ function toSchedule(row: any): Schedule {
 
 export class ScheduleRepositoryImpl implements ScheduleRepository {
   async create(data: Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>): Promise<Schedule> {
-   
     const [row] = await db
       .insert(schedules)
       //@ts-ignore
@@ -75,13 +73,9 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
 
   async getSchedulesSeats(tripId: string) {
     // Get all schedules for the trip
-    const schedulesRows = await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.tripId, tripId))
-      .execute();
+    const schedulesRows = await db.select().from(schedules).where(eq(schedules.tripId, tripId)).execute()
 
-    if (!schedulesRows.length) return [];
+    if (!schedulesRows.length) return []
 
     // For each schedule, get all seats and their booking status
     const results = await Promise.all(
@@ -90,11 +84,11 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
         const seatRows = await db
           .select({
             id: seats.id,
-            seatNumber: seats.seatNumber,
+            seatNumber: seats.seatNumber
           })
           .from(seats)
           .where(eq(seats.scheduleId, schedule.id))
-          .execute();
+          .execute()
 
         // Get all bookings for this schedule (not cancelled)
         const bookingRows = await db
@@ -109,34 +103,34 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
               eq(bookings.status, 'confirmed')
             )
           )
-          .execute();
-        const bookingIds = bookingRows.map((b) => b.id);
+          .execute()
+        const bookingIds = bookingRows.map((b) => b.id)
 
         // Get all bookingSeats for these bookings
-        let occupiedSeatIds: string[] = [];
+        let occupiedSeatIds: string[] = []
         if (bookingIds.length > 0) {
           const bookingSeatRows = await db
             .select({ seatId: bookingSeats.seatId })
             .from(bookingSeats)
             .where(inArray(bookingSeats.bookingId, bookingIds))
-            .execute();
-          occupiedSeatIds = bookingSeatRows.map((bs) => bs.seatId || '').filter((id): id is string => !!id);
+            .execute()
+          occupiedSeatIds = bookingSeatRows.map((bs) => bs.seatId || '').filter((id): id is string => !!id)
         }
 
         // Compose seat status
         const seatsWithStatus = seatRows.map((seat) => ({
           seatNumber: seat.seatNumber || '',
-          status: occupiedSeatIds.includes(seat.id) ? 'occupied' : 'free',
-        }));
+          status: occupiedSeatIds.includes(seat.id) ? 'occupied' : 'free'
+        }))
 
         return {
           scheduleId: schedule.id,
           departureTime: schedule.departureTime || '',
           arrivalTime: schedule.arrivalTime || '',
-          seats: seatsWithStatus,
-        };
+          seats: seatsWithStatus
+        }
       })
-    );
-    return results;
+    )
+    return results
   }
 }

@@ -1,6 +1,6 @@
+import type { Schedule } from '../../../domain/models/schedule.model'
 // src/application/use-cases/schedule/get-schedule.use-case.ts
 import type { ScheduleRepository } from '../../../domain/repositories/schedule.repository.interface'
-import type { Schedule } from '../../../domain/models/schedule.model'
 
 export class GetScheduleUseCase {
   constructor(private scheduleRepository: ScheduleRepository) {}

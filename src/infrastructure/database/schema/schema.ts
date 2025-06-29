@@ -157,13 +157,17 @@ export const trips = pgTable('trips', {
   status: text('status'),
   price: text('price'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date())
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdateFn(() => new Date())
 })
 
 // SCHEDULE
 export const schedules = pgTable('schedules', {
   id: text('id').primaryKey(),
-  tripId: text('trip_id').notNull().references(() => trips.id),
+  tripId: text('trip_id')
+    .notNull()
+    .references(() => trips.id),
   departureTime: text('departure_time'),
   arrivalTime: text('arrival_time'),
   status: text('status'),

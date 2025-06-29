@@ -316,6 +316,28 @@
       - Horaire supprimé
     - Paramètres : path (id), header (Authorization)
 
+- [x] Exposer l’endpoint API `/admin/dashboard/cancelled-trips` pour la liste des voyages annulés (statut `cancelled`)
+  - [x] Implémenter le use case `GetCancelledTripsUseCase`
+  - [x] Ajouter la route OpenAPI dans le contrôleur admin
+  - [x] Documenter le payload attendu et les critères d’acceptation dans la doc
+  - [x] Ajouter des tests unitaires et d’intégration pour ce use case
+
+# Endpoints avancés exposés dans le dashboard admin
+
+- [x] `/admin/dashboard/top-destinations` — Classement des lignes les plus populaires
+- [x] `/admin/dashboard/low-occupancy-trips` — Voyages à faible taux d’occupation
+- [x] `/admin/dashboard/upcoming-departures` — Tableau des prochains départs
+- [x] `/admin/dashboard/recent-bookings` — Liste des dernières réservations
+- [x] `/admin/dashboard/booking-distribution` — Répartition des réservations par type ou destination
+- [x] `/admin/dashboard/cancelled-bookings` — Liste des réservations annulées
+- [x] `/admin/dashboard/cancelled-trips` — Liste des voyages annulés
+
+> Pour chaque endpoint :
+> - Use case dédié
+> - Schéma Zod et documentation OpenAPI
+> - Tests unitaires et d’intégration
+> - Gestion des erreurs (401/403)
+
 ## Tâches Frontend (utilisateur standard)
 
 - [ ] **Réservations**
@@ -540,3 +562,309 @@
 ---
 
 Chaque tâche correspond à un endpoint à implémenter côté frontend ou backend, avec use case, scénario, exceptions, critères d’acceptation et paramètres.
+
+---
+
+### `/admin/dashboard/top-destinations` — Classement des lignes les plus populaires
+- **Use case** : Afficher les routes ayant reçu le plus de réservations sur la période.
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne la liste triée des routes par nombre de réservations.
+- **Exceptions** : Aucune réservation sur la période → liste vide.
+- **Format de retour** :
+```json
+{
+  "topDestinations": [
+    { "routeId": "r1", "routeLabel": "Paris-Lyon", "bookings": 120 }
+  ]
+}
+```
+
+### `/admin/dashboard/low-occupancy-trips` — Voyages à faible taux d’occupation
+- **Use case** : Identifier les voyages à venir avec un taux de remplissage < 30%.
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne la liste des voyages concernés et une alerte si besoin.
+- **Exceptions** : Aucun voyage concerné → liste vide.
+- **Format de retour** :
+```json
+{
+  "lowOccupancyTrips": [
+    { "tripId": "t1", "label": "Paris-Lyon 2025-07-01", "occupancy": 20 }
+  ],
+  "alerts": ["Attention : 1 voyage à faible taux d’occupation (<30%)"]
+}
+```
+
+### `/admin/dashboard/upcoming-departures` — Tableau des prochains départs
+- **Use case** : Lister les voyages à venir (date, heure, taux de remplissage, statut).
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne les départs à venir triés par date.
+- **Exceptions** : Aucun départ à venir → liste vide.
+- **Format de retour** :
+```json
+{
+  "upcomingDepartures": [
+    { "scheduleId": "s1", "tripId": "t2", "routeLabel": "Paris-Lyon", "departureTime": "2025-07-01T08:00:00Z", "occupancy": 80, "status": "scheduled" }
+  ]
+}
+```
+
+### `/admin/dashboard/recent-bookings` — Liste des dernières réservations
+- **Use case** : Afficher les N dernières réservations (nom utilisateur, voyage, date, statut).
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne les dernières réservations.
+- **Exceptions** : Aucune réservation récente → liste vide.
+- **Format de retour** :
+```json
+{
+  "recentBookings": [
+    { "bookingId": "b1", "userName": "Alice Dupont", "tripId": "t2", "routeLabel": "Paris-Lyon", "bookedAt": "2025-06-28T10:00:00Z", "status": "confirmed" }
+  ]
+}
+```
+
+### `/admin/dashboard/booking-distribution` — Répartition des réservations par type ou destination
+- **Use case** : Visualiser la répartition des réservations par type de voyage ou destination.
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne la distribution.
+- **Exceptions** : Aucune réservation → liste vide.
+- **Format de retour** :
+```json
+{
+  "bookingDistribution": [
+    { "type": "standard", "routeId": "r1", "routeLabel": "Paris-Lyon", "count": 42 }
+  ]
+}
+```
+
+### `/admin/dashboard/cancelled-bookings` — Liste des réservations annulées
+- **Use case** : Afficher la liste des réservations annulées.
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne les réservations annulées triées par date.
+- **Exceptions** : Aucune réservation annulée → liste vide.
+- **Format de retour** :
+```json
+{
+  "cancelledBookings": [
+    { "bookingId": "b2", "userName": "Bob", "tripId": "t3", "routeLabel": "Lyon-Marseille", "bookedAt": "2025-06-27T09:00:00Z", "status": "cancelled" }
+  ]
+}
+```
+
+### `/admin/dashboard/cancelled-trips` — Liste des voyages annulés
+- **Use case** : Afficher la liste des voyages annulés (statut `cancelled`).
+- **Scénario nominal** : L’admin consulte le dashboard, l’API retourne les voyages annulés triés par date.
+- **Exceptions** : Aucun voyage annulé → liste vide.
+- **Format de retour** :
+```json
+{
+  "cancelledTrips": [
+    { "tripId": "t3", "routeLabel": "Marseille-Paris", "departureDate": "2025-06-30T08:00:00Z", "status": "cancelled" }
+  ]
+}
+```
+
+---
+
+## TODO technique – Statistiques avancées dashboard admin
+
+- [ ] **Chiffre d’affaires** (`GET /admin/dashboard/revenue`)
+  - [ ] Use case : `GetRevenueStatsUseCase` (calcul total, today, week, month)
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+- [ ] **Top utilisateurs** (`GET /admin/dashboard/top-users`)
+  - [ ] Use case : `GetTopUsersUseCase` (classement par nombre de réservations)
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+- [ ] **Taux d’annulation** (`GET /admin/dashboard/cancellation-rate`)
+  - [ ] Use case : `GetCancellationRateUseCase` (calcul % annulation bookings/trips)
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+- [ ] **Répartition des paiements** (`GET /admin/dashboard/payment-methods`)
+  - [ ] Use case : `GetPaymentMethodsStatsUseCase`
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+- [ ] **Nouveaux utilisateurs** (`GET /admin/dashboard/new-users`)
+  - [ ] Use case : `GetNewUsersStatsUseCase` (today, week, month)
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+- [ ] **Voyages complets** (`GET /admin/dashboard/full-trips`)
+  - [ ] Use case : `GetFullTripsStatsUseCase` (taux de remplissage = 100%) 
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+- [ ] **Alertes spécifiques** (`GET /admin/dashboard/alerts`)
+  - [ ] Use case : `GetDashboardAlertsUseCase` (voyages sans conducteur, sans réservations, etc.)
+  - [ ] Route/controller + schéma Zod/OpenAPI
+  - [ ] Tests unitaires et intégration
+  - [ ] Doc payload et critères d’acceptation
+
+> Pour chaque statistique : respecter l’architecture hexagonale (use case, controller, validation, doc, tests).
+> Ajouter la doc OpenAPI et la section correspondante dans la doc technique.
+
+---
+
+## TODO technique – Implémentation des endpoints avancés du dashboard admin
+
+### Domaine : Admin / Dashboard
+
+- [ ] **Chiffre d’affaires** (`GET /admin/dashboard/revenue`)
+  - Use case : Afficher le chiffre d’affaires total et par période (jour, semaine, mois)
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne les montants agrégés
+  - Exceptions : Aucun paiement enregistré → valeurs à 0
+  - Critères d’acceptation : Les montants sont corrects et à jour
+  - Paramètres : header (Authorization), query (période?)
+  - Exemple de retour :
+    ```json
+    {
+      "revenue": {
+        "total": 12000,
+        "today": 500,
+        "week": 3200,
+        "month": 9000
+      }
+    }
+    ```
+  - Tâches :
+    - [ ] Use case `get-revenue.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+- [ ] **Top utilisateurs** (`GET /admin/dashboard/top-users`)
+  - Use case : Afficher les utilisateurs ayant effectué le plus de réservations
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne le classement des utilisateurs
+  - Exceptions : Aucun utilisateur → liste vide
+  - Critères d’acceptation : Classement correct, à jour
+  - Paramètres : header (Authorization), query (limit?)
+  - Exemple de retour :
+    ```json
+    {
+      "topUsers": [
+        { "userId": "u1", "userName": "Alice", "bookings": 12 }
+      ]
+    }
+    ```
+  - Tâches :
+    - [ ] Use case `get-top-users.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+- [ ] **Taux d’annulation** (`GET /admin/dashboard/cancellation-rate`)
+  - Use case : Afficher le taux d’annulation des réservations et des voyages
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne les pourcentages
+  - Exceptions : Aucun historique → taux à 0%
+  - Critères d’acceptation : Calcul correct, à jour
+  - Paramètres : header (Authorization)
+  - Exemple de retour :
+    ```json
+    {
+      "cancellationRate": {
+        "bookings": 8.5,
+        "trips": 3.2
+      }
+    }
+    ```
+  - Tâches :
+    - [ ] Use case `get-cancellation-rate.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+- [ ] **Répartition des paiements par méthode** (`GET /admin/dashboard/payment-methods`)
+  - Use case : Visualiser la répartition des paiements par type (CB, Stripe, espèces, etc.)
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne la distribution
+  - Exceptions : Aucun paiement → liste vide
+  - Critères d’acceptation : Répartition correcte, à jour
+  - Paramètres : header (Authorization)
+  - Exemple de retour :
+    ```json
+    {
+      "paymentMethods": [
+        { "method": "CB", "count": 80 },
+        { "method": "Stripe", "count": 40 }
+      ]
+    }
+    ```
+  - Tâches :
+    - [ ] Use case `get-payment-methods.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+- [ ] **Nouveaux utilisateurs** (`GET /admin/dashboard/new-users`)
+  - Use case : Afficher le nombre de nouveaux inscrits sur la période
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne les totaux par période
+  - Exceptions : Aucun nouvel utilisateur → valeurs à 0
+  - Critères d’acceptation : Totaux corrects, à jour
+  - Paramètres : header (Authorization), query (période?)
+  - Exemple de retour :
+    ```json
+    {
+      "newUsers": {
+        "today": 2,
+        "week": 15,
+        "month": 40
+      }
+    }
+    ```
+  - Tâches :
+    - [ ] Use case `get-new-users.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+- [ ] **Voyages complets** (`GET /admin/dashboard/full-trips`)
+  - Use case : Afficher le nombre de voyages complets (taux de remplissage = 100%)
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne le nombre de voyages complets
+  - Exceptions : Aucun voyage complet → valeur à 0
+  - Critères d’acceptation : Nombre correct, à jour
+  - Paramètres : header (Authorization)
+  - Exemple de retour :
+    ```json
+    {
+      "fullTrips": 5
+    }
+    ```
+  - Tâches :
+    - [ ] Use case `get-full-trips.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+- [ ] **Alertes spécifiques** (`GET /admin/dashboard/alerts`)
+  - Use case : Lister les alertes importantes (ex : voyages sans conducteur, sans réservations, etc.)
+  - Scénario nominal : L’admin consulte le dashboard, l’API retourne la liste des alertes
+  - Exceptions : Aucune alerte → liste vide
+  - Critères d’acceptation : Liste correcte, à jour
+  - Paramètres : header (Authorization)
+  - Exemple de retour :
+
+    ```json
+    {
+      "alerts": [
+        "Voyage t5 sans conducteur assigné",
+        "Voyage t8 sans réservation"
+      ]
+    }
+    ```
+
+  - Tâches :
+    - [ ] Use case `get-alerts.use-case.ts`
+    - [ ] Route/controller
+    - [ ] Schéma Zod + OpenAPI
+    - [ ] Tests unitaires & intégration
+    - [ ] Documentation
+
+---

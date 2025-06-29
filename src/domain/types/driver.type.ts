@@ -1,1 +1,1 @@
-export type DriverStatus = 'active' | 'inactive' | 'suspended' | 'pending';
+export type DriverStatus = 'active' | 'inactive' | 'suspended' | 'pending'
