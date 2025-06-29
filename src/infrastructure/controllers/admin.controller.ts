@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
+import { GetAdminBookingsUseCase } from '@/application/use-cases/admin/get-admin-bookings.use-case'
 import { GetBookingDistributionUseCase } from '@/application/use-cases/admin/get-booking-distribution.use-case'
 import { GetCancelledBookingsUseCase } from '@/application/use-cases/admin/get-cancelled-bookings.use-case'
 import { GetCancelledTripsUseCase } from '@/application/use-cases/admin/get-cancelled-trips.use-case'
@@ -8,7 +9,6 @@ import { GetRecentBookingsUseCase } from '@/application/use-cases/admin/get-rece
 import { GetTopDestinationsUseCase } from '@/application/use-cases/admin/get-top-destinations.use-case'
 import { GetUpcomingDeparturesUseCase } from '@/application/use-cases/admin/get-upcoming-departures.use-case'
 import type { Routes } from '../../domain/types/route.type'
-import { GetAdminBookingsUseCase } from '@/application/use-cases/admin/get-admin-bookings.use-case'
 
 export class AdminController implements Routes {
   public controller = new OpenAPIHono()
@@ -469,7 +469,7 @@ export class AdminController implements Routes {
           const route = booking.route || {}
           const user = booking.user || {}
           return {
-            bookingId: booking.id,
+            id: booking.bookingId,
             tripId: booking.tripId,
             routeLabel:
               route.departureCity && route.arrivalCity ? `${route.departureCity} - ${route.arrivalCity}` : null,
@@ -478,7 +478,7 @@ export class AdminController implements Routes {
             driverId: driver.id || null,
             driverName: driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : null,
             driverPhone: driver.phone || null,
-            vehicleId: vehicle.id || null,
+            vehicleId: vehicle.model && vehicle.registration ? `${vehicle.model}-${vehicle.registration}` : null,
             vehicleModel: vehicle.model || null,
             vehiclePlate: vehicle.plate || null,
             // Infos utilisateur à plat
@@ -504,7 +504,7 @@ export class AdminController implements Routes {
                     !Number.isNaN(Date.parse(s.schedule.departureTime))
                   ) {
                     const d = new Date(s.schedule.departureTime)
-                    hour = `(${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+                    hour = ` • ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   }
                 }
                 return s.seatNumber ? `${s.seatNumber} ${hour}`.trim() : null
