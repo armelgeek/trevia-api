@@ -8,6 +8,7 @@ import { GetRecentBookingsUseCase } from '@/application/use-cases/admin/get-rece
 import { GetTopDestinationsUseCase } from '@/application/use-cases/admin/get-top-destinations.use-case'
 import { GetUpcomingDeparturesUseCase } from '@/application/use-cases/admin/get-upcoming-departures.use-case'
 import type { Routes } from '../../domain/types/route.type'
+import { GetAdminBookingsUseCase } from '@/application/use-cases/admin/get-admin-bookings.use-case'
 
 export class AdminController implements Routes {
   public controller = new OpenAPIHono()
@@ -388,58 +389,135 @@ export class AdminController implements Routes {
       return c.json(result, 200)
     })
 
-    // --- Liste paginée des réservations admin ---
-    const adminBookingsSchema = z.object({
-      bookings: z.array(
-        z.object({
-          bookingId: z.string(),
-          userName: z.string(),
-          tripId: z.string(),
-          routeLabel: z.string(),
-          bookedAt: z.string(),
-          status: z.string()
-        })
-      ),
-      total: z.number(),
-      page: z.number(),
-      limit: z.number()
+    const listBookingsQuerySchema = z.object({
+      page: z.string().optional(),
+      limit: z.string().optional()
     })
+
+    const bookingSummarySchema = z.object({
+      bookingId: z.string(),
+      tripId: z.string(),
+      seatIds: z.array(z.string()).optional(),
+      totalPrice: z.string(),
+      status: z.string(),
+      bookedAt: z.string().nullable().optional()
+    })
+    const bookingListSchema = z.object({
+      data: z.array(bookingSummarySchema),
+      page: z.number(),
+      limit: z.number(),
+      total: z.number()
+    })
+
     const getAdminBookingsRoute = createRoute({
       method: 'get',
-      path: '/api/admin/bookings',
+      path: '/admin/bookings',
       request: {
-        query: z.object({
-          page: z.string().optional(),
-          limit: z.string().optional()
-        })
+        query: listBookingsQuerySchema
       },
       responses: {
         200: {
-          content: { 'application/json': { schema: adminBookingsSchema } },
-          description: 'Liste paginée de toutes les réservations (admin)'
+          content: {
+            'application/json': {
+              schema: bookingListSchema
+            }
+          },
+          description: 'Liste paginée de toutes les réservations'
         },
         401: {
-          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
           description: 'Utilisateur non authentifié'
         },
         403: {
-          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
           description: 'Accès interdit (admin uniquement)'
         }
       },
       tags: ['Admin'],
-      summary: 'Lister toutes les réservations',
+      summary: 'Lister toutes les réservations (admin)',
       description: 'Retourne la liste paginée de toutes les réservations (admin uniquement)'
     })
+
     this.controller.openapi(getAdminBookingsRoute, async (c: any) => {
       const user = c.get('user')
-      if (!user || !user.isAdmin) return c.json({ error: 'Accès interdit' }, user ? 403 : 401)
-      const { ListAdminBookingsUseCase } = await import('@/application/use-cases/admin/list-admin-bookings.use-case')
-      const page = c.req.query('page') ? Number.parseInt(c.req.query('page')) : 1
-      const limit = c.req.query('limit') ? Number.parseInt(c.req.query('limit')) : 20
-      const useCase = new ListAdminBookingsUseCase()
-      const result = await useCase.execute({ page, limit })
-      return c.json(result, 200)
+      if (!user || !user.isAdmin) {
+        return c.json({ error: 'Accès interdit' }, user ? 403 : 401)
+      }
+      const { page = '1', limit = '20' } = c.req.valid('query')
+      const pageNum = Math.max(1, Number.parseInt(page))
+      const limitNum = Math.max(1, Math.min(100, Number.parseInt(limit)))
+
+      try {
+        const getAdminBookingsUseCase = new GetAdminBookingsUseCase()
+        const result = await getAdminBookingsUseCase.execute({
+          page: pageNum,
+          limit: limitNum
+        })
+        // Enrichissement à plat pour chaque réservation
+        const enriched = result.data.map((booking: any) => {
+          const trip = booking.trip || {}
+          const driver = booking.driver || {}
+          const vehicle = booking.vehicle || {}
+          const route = booking.route || {}
+          const user = booking.user || {}
+          return {
+            bookingId: booking.id,
+            tripId: booking.tripId,
+            routeLabel:
+              route.departureCity && route.arrivalCity ? `${route.departureCity} - ${route.arrivalCity}` : null,
+            departureDate: trip.departureDate || null,
+            // arrivalDate supprimé
+            driverId: driver.id || null,
+            driverName: driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : null,
+            driverPhone: driver.phone || null,
+            vehicleId: vehicle.id || null,
+            vehicleModel: vehicle.model || null,
+            vehiclePlate: vehicle.plate || null,
+            // Infos utilisateur à plat
+            userId: user.id || null,
+            userName: user.name || null,
+            userFirstname: user.firstname || null,
+            userLastname: user.lastname || null,
+            userEmail: user.email || null,
+            userFullName: user.firstname && user.lastname ? `${user.firstname} ${user.lastname}` : user.name || null,
+            seatIds: booking.seatIds,
+            totalPrice: booking.totalPrice ?? '0',
+            status: booking.status ?? 'pending',
+            bookedAt: booking.bookedAt ? booking.bookedAt : null,
+            seats: booking.seats,
+            seatNumbers: (booking.seats || [])
+              .map((s: any) => {
+                let hour = ''
+                if (s.schedule && s.schedule.departureTime) {
+                  if (/^\d{2}:\d{2}$/.test(s.schedule.departureTime)) {
+                    hour = `(${s.schedule.departureTime})`
+                  } else if (
+                    typeof s.schedule.departureTime === 'string' &&
+                    !Number.isNaN(Date.parse(s.schedule.departureTime))
+                  ) {
+                    const d = new Date(s.schedule.departureTime)
+                    hour = `(${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+                  }
+                }
+                return s.seatNumber ? `${s.seatNumber} ${hour}`.trim() : null
+              })
+              .filter(Boolean)
+              .join(', ')
+          }
+        })
+        return c.json({ ...result, data: enriched }, 200)
+      } catch (error: any) {
+        console.log('err', error)
+        return c.json({ error: 'Erreur lors de la récupération des réservations' }, 400)
+      }
     })
   }
 }
