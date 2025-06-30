@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
 import { CreateTripUseCase } from '@/application/use-cases/trip/create-trip.use-case'
 import { DeleteTripUseCase } from '@/application/use-cases/trip/delete-trip.use-case'
+import { GetTripsByPopularityUseCase } from '@/application/use-cases/trip/get-trips-by-popularity.use-case'
 import { UpdateTripUseCase } from '@/application/use-cases/trip/update-trip.use-case'
 import { GetScheduleSeatsUseCase } from '../../application/use-cases/trip/get-schedule-seats.use-case'
 import { GetTripByIdUseCase } from '../../application/use-cases/trip/get-trip-by-id.use-case'
@@ -31,6 +32,66 @@ export class TripController implements Routes {
 
     const tripIdParamSchema = z.object({
       id: z.string().min(1, 'Trip ID requis')
+    })
+
+    // --- Endpoint GET /trips/popular ---
+    const tripPopularitySchema = z.object({
+      tripId: z.string(),
+      routeLabel: z.string(),
+      departureDate: z.string().nullable(),
+      bookingsCount: z.number(),
+      price: z.number().nullable(),
+      availableTimes: z.array(z.string()),
+      duration: z.number().nullable(),
+      driverName: z.string().nullable(),
+      vehicleModel: z.string().nullable()
+    })
+    const tripPopularityListSchema = z.object({
+      data: z.array(tripPopularitySchema),
+      page: z.number(),
+      limit: z.number(),
+      total: z.number()
+    })
+    const listTripsByPopularityRoute = createRoute({
+      method: 'get',
+      path: '/trips/popular',
+      request: {
+        query: z.object({
+          page: z.string().optional(),
+          limit: z.string().optional()
+        })
+      },
+      responses: {
+        200: {
+          content: { 'application/json': { schema: tripPopularityListSchema } },
+          description: 'Liste paginée des voyages triés par popularité'
+        },
+        400: {
+          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          description: 'Erreur de requête'
+        }
+      },
+      tags: ['Trips'],
+      summary: 'Lister les voyages par popularité',
+      description:
+        'Retourne la liste paginée des voyages triés par nombre de réservations décroissant, avec prix, horaires et durée.'
+    })
+    this.controller.openapi(listTripsByPopularityRoute, async (c: any) => {
+      const { page = '1', limit = '20' } = c.req.valid('query')
+      const useCase = new GetTripsByPopularityUseCase()
+      const result = await useCase.execute({ page, limit })
+      if (!result.success) {
+        return c.json({ error: result.error || 'Erreur lors de la récupération des voyages populaires' }, 400)
+      }
+      return c.json(
+        {
+          data: result.data,
+          page: result.page,
+          limit: result.limit,
+          total: result.total
+        },
+        200
+      )
     })
 
     // GET /trips
@@ -344,7 +405,6 @@ export class TripController implements Routes {
     this.controller.openapi(deleteTripRoute, async (c: any) => {
       try {
         const { id } = c.req.valid('param')
-        console.log('idid', id)
         const tripRepository = new TripRepositoryImpl()
         const useCase = new DeleteTripUseCase(tripRepository)
         await useCase.execute(id)

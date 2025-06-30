@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql, count } from 'drizzle-orm'
 import { db } from '../database/db'
-import { trips } from '../database/schema/schema'
+import { trips, routes, drivers, vehicles, bookings, schedules } from '../database/schema/schema'
 import type { TripRepository } from '../../domain/repositories/trip.repository.interface'
 import type { Trip, TripFilters } from '../../domain/types/trip.type'
 
@@ -102,5 +102,77 @@ export class TripRepositoryImpl implements TripRepository {
       return result.length > 0
     }
     return false
+  }
+
+  async findByPopularity(page = 1, limit = 20) {
+    const offset = (page - 1) * limit
+    // Récupérer les voyages avec le nombre de réservations, prix, horaires, durée, etc.
+    const rows = await db
+      .select({
+        tripId: trips.id,
+        departureDate: trips.departureDate,
+        price: trips.price,
+        routeDeparture: routes.departureCity,
+        routeArrival: routes.arrivalCity,
+        driverFirstName: drivers.firstName,
+        driverLastName: drivers.lastName,
+        vehicleModel: vehicles.model,
+        bookingsCount: count(bookings.id).as('bookingsCount'),
+        duration: routes.duration
+      })
+      .from(trips)
+      .leftJoin(bookings, eq(bookings.tripId, trips.id))
+      .leftJoin(routes, eq(routes.id, trips.routeId))
+      .leftJoin(drivers, eq(drivers.id, trips.driverId))
+      .leftJoin(vehicles, eq(vehicles.id, trips.vehicleId))
+      .groupBy(
+        trips.id,
+        routes.departureCity,
+        routes.arrivalCity,
+        drivers.firstName,
+        drivers.lastName,
+        vehicles.model,
+        routes.duration,
+        trips.departureDate,
+        trips.price
+      )
+      .orderBy(desc(count(bookings.id)))
+      .limit(limit)
+      .offset(offset)
+      .execute()
+
+    // Récupérer les horaires disponibles pour chaque trip
+    const tripIds = rows.map((r) => r.tripId)
+    let availableTimesMap: Record<string, string[]> = {}
+    if (tripIds.length > 0) {
+      const schedulesRows = await db
+        .select({ tripId: schedules.tripId, departureTime: schedules.departureTime })
+        .from(schedules)
+        .where(inArray(schedules.tripId, tripIds))
+        .execute()
+      availableTimesMap = schedulesRows.reduce((acc, s) => {
+        if (!acc[s.tripId]) acc[s.tripId] = []
+        if (s.departureTime) acc[s.tripId].push(s.departureTime)
+        return acc
+      }, {} as Record<string, string[]>)
+    }
+
+    const data = rows.map((row) => ({
+      tripId: row.tripId,
+      routeLabel: [row.routeDeparture, row.routeArrival].filter(Boolean).join(' - '),
+      departureDate: row.departureDate ? new Date(row.departureDate).toISOString() : null,
+      bookingsCount: Number(row.bookingsCount),
+      price: row.price ? Number(row.price) : null,
+      availableTimes: availableTimesMap[row.tripId] || [],
+      duration: row.duration ? Number(row.duration) : null,
+      driverName: row.driverFirstName && row.driverLastName ? `${row.driverFirstName} ${row.driverLastName}` : null,
+      vehicleModel: row.vehicleModel || null
+    }))
+
+    // Total
+    const totalRows = await db.select({ tripId: trips.id }).from(trips).execute()
+    const total = totalRows.length
+
+    return { data, page, limit, total }
   }
 }
