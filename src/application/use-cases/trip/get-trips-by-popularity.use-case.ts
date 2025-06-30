@@ -1,6 +1,6 @@
 import { db } from '../../../infrastructure/database/db/index'
 import { bookings, drivers, routes, schedules, trips, vehicles } from '../../../infrastructure/database/schema/schema'
-import { sql, eq, and, count, desc, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 
 export interface GetTripsByPopularityInput {
   page?: string
@@ -17,6 +17,8 @@ export interface TripPopularityData {
   duration: number | null
   driverName: string | null
   vehicleModel: string | null
+  departureCity: string | null
+  arrivalCity: string | null
 }
 
 export interface GetTripsByPopularityOutput {
@@ -47,6 +49,7 @@ export class GetTripsByPopularityUseCase {
           driverLastName: drivers.lastName,
           vehicleModel: vehicles.model,
           bookingsCount: count(bookings.id).as('bookingsCount'),
+          distanceKm: routes.distanceKm,
           duration: routes.duration
         })
         .from(trips)
@@ -62,6 +65,7 @@ export class GetTripsByPopularityUseCase {
           drivers.lastName,
           vehicles.model,
           routes.duration,
+          routes.distanceKm,
           trips.departureDate,
           trips.price
         )
@@ -80,14 +84,19 @@ export class GetTripsByPopularityUseCase {
           .where(inArray(schedules.tripId, tripIds))
           .execute()
         availableTimesMap = schedulesRows.reduce((acc, s) => {
-          if (!acc[s.tripId]) acc[s.tripId] = []
-          if (s.departureTime) acc[s.tripId].push(s.departureTime)
-          return acc
+            if (!acc[s.tripId]) {
+                acc[s.tripId] = []
+            }
+            if (s.departureTime) {
+                acc[s.tripId].push(s.departureTime)
+            }
+            return acc
         }, {} as Record<string, string[]>)
       }
 
-      const data: TripPopularityData[] = rows.map(row => ({
+      const data: TripPopularityData[] = rows.map((row) => ({
         tripId: row.tripId,
+        distanceKm: row.distanceKm ? Number(row.distanceKm) : null,
         routeLabel: [row.routeDeparture, row.routeArrival].filter(Boolean).join(' - '),
         departureDate: row.departureDate ? new Date(row.departureDate).toISOString() : null,
         bookingsCount: Number(row.bookingsCount),
@@ -95,17 +104,25 @@ export class GetTripsByPopularityUseCase {
         availableTimes: availableTimesMap[row.tripId] || [],
         duration: row.duration ? Number(row.duration) : null,
         driverName: row.driverFirstName && row.driverLastName ? `${row.driverFirstName} ${row.driverLastName}` : null,
-        vehicleModel: row.vehicleModel || null
+        vehicleModel: row.vehicleModel || null,
+        departureCity: row.routeDeparture ?? null,
+        arrivalCity: row.routeArrival ?? null
       }))
 
-      // Get total count
-      const totalRows = await db
-        .select({ tripId: trips.id })
-        .from(trips)
-        .execute()
-      const total = totalRows.length
+      // Filtrer pour ne garder qu'un trip par destination (le plus populaire)
+      const uniqueByDestination: Record<string, TripPopularityData> = {}
+      for (const trip of data) {
+        const key = `${trip.departureCity}__${trip.arrivalCity}`
+        if (!uniqueByDestination[key]) {
+          uniqueByDestination[key] = trip
+        }
+      }
+      const filteredData = Object.values(uniqueByDestination).slice(0, limitNum)
 
-      return { success: true, data, page: pageNum, limit: limitNum, total }
+      // Get total count (nombre de destinations uniques)
+      const total = Object.keys(uniqueByDestination).length
+
+      return { success: true, data: filteredData, page: pageNum, limit: limitNum, total }
     } catch (error: any) {
       return { success: false, error: error?.message || 'Erreur lors de la récupération des voyages populaires' }
     }

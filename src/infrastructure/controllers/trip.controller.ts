@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
 import { CreateTripUseCase } from '@/application/use-cases/trip/create-trip.use-case'
 import { DeleteTripUseCase } from '@/application/use-cases/trip/delete-trip.use-case'
+import { GetTripsByDateUseCase } from '@/application/use-cases/trip/get-trips-by-date.use-case'
 import { GetTripsByPopularityUseCase } from '@/application/use-cases/trip/get-trips-by-popularity.use-case'
 import { UpdateTripUseCase } from '@/application/use-cases/trip/update-trip.use-case'
 import { GetScheduleSeatsUseCase } from '../../application/use-cases/trip/get-schedule-seats.use-case'
@@ -44,7 +45,9 @@ export class TripController implements Routes {
       availableTimes: z.array(z.string()),
       duration: z.number().nullable(),
       driverName: z.string().nullable(),
-      vehicleModel: z.string().nullable()
+      vehicleModel: z.string().nullable(),
+      departureCity: z.string().nullable(),
+      arrivalCity: z.string().nullable()
     })
     const tripPopularityListSchema = z.object({
       data: z.array(tripPopularitySchema),
@@ -73,8 +76,7 @@ export class TripController implements Routes {
       },
       tags: ['Trips'],
       summary: 'Lister les voyages par popularité',
-      description:
-        'Retourne la liste paginée des voyages triés par nombre de réservations décroissant, avec prix, horaires et durée.'
+      description: 'Retourne la liste paginée des voyages triés par nombre de réservations décroissant.'
     })
     this.controller.openapi(listTripsByPopularityRoute, async (c: any) => {
       const { page = '1' } = c.req.valid('query')
@@ -122,6 +124,55 @@ export class TripController implements Routes {
         limit: c.req.query('pageSize') || '10'
       })
       return c.json({ data: result.data, total: result.total, limit: result.limit, page: result.page }, 200)
+    })
+
+    // --- Endpoint GET /trips/by-date ---
+    const scheduleSchema = z.object({
+      id: z.string(),
+      departure: z.string(),
+      arrival: z.string(),
+      duration: z.string(),
+      price: z.number(),
+      availableSeats: z.number(),
+      totalSeats: z.number(),
+      vehicleType: z.string().nullable(),
+      stops: z.array(z.string())
+    })
+    const destinationSchedulesSchema = z.object({
+      label: z.string(),
+      schedules: z.array(scheduleSchema)
+    })
+    const getTripsByDateRoute = createRoute({
+      method: 'get',
+      path: '/trips/by-date',
+      request: {
+        query: z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date au format YYYY-MM-DD requise')
+        })
+      },
+      responses: {
+        200: {
+          content: { 'application/json': { schema: z.array(destinationSchedulesSchema) } },
+          description: 'Voyages groupés par destination et horaires pour une date donnée'
+        },
+        400: {
+          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          description: 'Erreur de requête'
+        }
+      },
+      tags: ['Trips'],
+      summary: 'Lister les voyages par date',
+      description: 'Retourne les destinations et horaires disponibles pour une date donnée.'
+    })
+    this.controller.openapi(getTripsByDateRoute, async (c: any) => {
+      const { date } = c.req.valid('query')
+      try {
+        const useCase = new GetTripsByDateUseCase()
+        const result = await useCase.execute({ date })
+        return c.json(result, 200)
+      } catch (error: any) {
+        return c.json({ error: error?.message || 'Erreur lors de la récupération des voyages par date' }, 400)
+      }
     })
 
     const getTripByIdRoute = createRoute({
@@ -421,7 +472,70 @@ export class TripController implements Routes {
         return c.json({ error: error?.message || 'Erreur suppression voyage' }, 400)
       }
     })
+
+    // --- Endpoint GET /schedules/search ---
+    const searchSchedulesQuerySchema = z.object({
+      departureCity: z.string().min(1).optional(),
+      arrivalCity: z.string().min(1).optional(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date au format YYYY-MM-DD requise'),
+      passengers: z.string().regex(/^\d*$/, 'Nombre de passagers requis').optional(),
+      page: z.string().optional(),
+      limit: z.string().optional()
+    })
+    const scheduleSearchResultSchema = z.object({
+      scheduleId: z.string(),
+      tripId: z.string(),
+      departure: z.string(),
+      arrival: z.string(),
+      duration: z.string(),
+      price: z.number(),
+      availableSeats: z.number(),
+      totalSeats: z.number(),
+      vehicleType: z.string().nullable(),
+      vehicleModel: z.string().nullable(),
+      routeLabel: z.string()
+    })
+    const searchSchedulesResponseSchema = z.object({
+      data: z.array(scheduleSearchResultSchema),
+      page: z.number(),
+      limit: z.number(),
+      total: z.number()
+    })
+    const searchSchedulesRoute = createRoute({
+      method: 'get',
+      path: '/schedules/search',
+      request: { query: searchSchedulesQuerySchema },
+      responses: {
+        200: {
+          content: { 'application/json': { schema: searchSchedulesResponseSchema } },
+          description: 'Liste paginée des horaires de voyage disponibles selon les filtres'
+        },
+        400: {
+          content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+          description: 'Erreur de requête'
+        }
+      },
+      tags: ['Schedules'],
+      summary: 'Rechercher les horaires de voyage',
+      description: 'Recherche paginée des horaires filtrés par ville de départ, d’arrivée, date, nombre de passagers.'
+    })
+    this.controller.openapi(searchSchedulesRoute, async (c: any) => {
+      const { departureCity, arrivalCity, date, passengers, page = '1', limit = '10' } = c.req.valid('query')
+      try {
+        const { SearchSchedulesUseCase } = await import('@/application/use-cases/trip/search-schedules.use-case')
+        const useCase = new SearchSchedulesUseCase()
+        const result = await useCase.execute({
+          departureCity,
+          arrivalCity,
+          date,
+          passengers: Number(passengers),
+          page: Number(page),
+          limit: Number(limit)
+        })
+        return c.json(result, 200)
+      } catch (error: any) {
+        return c.json({ error: error?.message || 'Erreur lors de la recherche des horaires' }, 400)
+      }
+    })
   }
 }
-
-// ci: add monitoring setup - Development on 2025-06-21
