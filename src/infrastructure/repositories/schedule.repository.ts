@@ -103,7 +103,7 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
         const bookingRows = await db
           .select({ id: bookings.id })
           .from(bookings)
-          .where(and(eq(bookings.scheduleId, schedule.id), eq(bookings.status, 'confirmed')))
+          .where(and(eq(bookings.scheduleId, schedule.id), eq(bookings.status, 'paid')))
           .execute()
         const bookingIds = bookingRows.map((b) => b.id)
 
@@ -116,6 +116,7 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
             .execute()
           occupiedSeatIds = bookingSeatRows.map((bs) => bs.seatId || '').filter((id): id is string => !!id)
         }
+        console.log('bookingSeatRows',occupiedSeatIds);
 
         const allVehicleSeats = (
           await db
