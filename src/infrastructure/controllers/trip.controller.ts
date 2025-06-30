@@ -77,9 +77,10 @@ export class TripController implements Routes {
         'Retourne la liste paginée des voyages triés par nombre de réservations décroissant, avec prix, horaires et durée.'
     })
     this.controller.openapi(listTripsByPopularityRoute, async (c: any) => {
-      const { page = '1', limit = '20' } = c.req.valid('query')
+      const { page = '1' } = c.req.valid('query')
       const useCase = new GetTripsByPopularityUseCase()
-      const result = await useCase.execute({ page, limit })
+      // Limite forcée à 6
+      const result = await useCase.execute({ page, limit: '6' })
       if (!result.success) {
         return c.json({ error: result.error || 'Erreur lors de la récupération des voyages populaires' }, 400)
       }
