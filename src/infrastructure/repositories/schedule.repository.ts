@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq, inArray } from 'drizzle-orm'
 // src/infrastructure/repositories/schedule.repository.ts
 import { db } from '../database/db'
-import { bookings, bookingSeats, schedules, seats } from '../database/schema/schema'
+import { bookings, bookingSeats, schedules, seats, trips, vehicles } from '../database/schema/schema'
 import type { ScheduleRepository } from '../../domain/repositories/schedule.repository.interface'
 import type { Schedule, ScheduleFilters } from '../../domain/types/schedule.type'
 
@@ -71,42 +71,42 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
     return true
   }
 
-  async getSchedulesSeats(tripId: string) {
-    // Get all schedules for the trip
-    const schedulesRows = await db.select().from(schedules).where(eq(schedules.tripId, tripId)).execute()
+  async getSchedulesSeats(tripId: string, scheduleId?: string, status?: string) {
+    // Build base where clause
+    let whereClause: any = eq(schedules.tripId, tripId)
+    if (scheduleId) {
+      whereClause = and(whereClause, eq(schedules.id, scheduleId!))
+    }
+    if (status) {
+      whereClause = and(whereClause, eq(schedules.status, status!))
+    }
+    // Get all schedules for the trip (with optional filters)
+    const schedulesRows = await db.select().from(schedules).where(whereClause).execute()
 
     if (!schedulesRows.length) return []
 
-    // For each schedule, get all seats and their booking status
+    // Get the trip to find the vehicleId (all schedules have the same tripId)
+    const [tripRow] = await db.select({ vehicleId: trips.vehicleId }).from(trips).where(eq(trips.id, tripId)).execute()
+    let vehicleRegistration = ''
+    let vehicleCapacity = 0
+    if (tripRow && tripRow.vehicleId) {
+      const [vehicleRow] = await db
+        .select({ registration: vehicles.registration, seatCount: vehicles.seatCount })
+        .from(vehicles)
+        .where(eq(vehicles.id, tripRow.vehicleId))
+        .execute()
+      vehicleRegistration = vehicleRow?.registration || ''
+      vehicleCapacity = vehicleRow?.seatCount ? Number(vehicleRow.seatCount) : 0
+    }
     const results = await Promise.all(
       schedulesRows.map(async (schedule) => {
-        // Get all seats for this schedule
-        const seatRows = await db
-          .select({
-            id: seats.id,
-            seatNumber: seats.seatNumber
-          })
-          .from(seats)
-          .where(eq(seats.scheduleId, schedule.id))
-          .execute()
-
-        // Get all bookings for this schedule (not cancelled)
         const bookingRows = await db
           .select({ id: bookings.id })
           .from(bookings)
-          .where(
-            and(
-              eq(bookings.scheduleId, schedule.id),
-              // Only consider bookings that are not cancelled
-              // (assuming status 'cancelled' means not active)
-              // If you have a different status for active bookings, adjust here
-              eq(bookings.status, 'confirmed')
-            )
-          )
+          .where(and(eq(bookings.scheduleId, schedule.id), eq(bookings.status, 'confirmed')))
           .execute()
         const bookingIds = bookingRows.map((b) => b.id)
 
-        // Get all bookingSeats for these bookings
         let occupiedSeatIds: string[] = []
         if (bookingIds.length > 0) {
           const bookingSeatRows = await db
@@ -117,8 +117,16 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
           occupiedSeatIds = bookingSeatRows.map((bs) => bs.seatId || '').filter((id): id is string => !!id)
         }
 
-        // Compose seat status
-        const seatsWithStatus = seatRows.map((seat) => ({
+        const allVehicleSeats = (
+          await db
+            .select({ id: seats.id, seatNumber: seats.seatNumber })
+            .from(seats)
+            .where(eq(seats.scheduleId, schedule.id))
+            .execute()
+        ).map((seat) => ({ id: seat.id, seatNumber: seat.seatNumber || '' }))
+
+        const seatsWithStatus = allVehicleSeats.map((seat) => ({
+          id: seat.id,
           seatNumber: seat.seatNumber || '',
           status: occupiedSeatIds.includes(seat.id) ? 'occupied' : 'free'
         }))
@@ -127,6 +135,8 @@ export class ScheduleRepositoryImpl implements ScheduleRepository {
           scheduleId: schedule.id,
           departureTime: schedule.departureTime || '',
           arrivalTime: schedule.arrivalTime || '',
+          vehicleRegistration,
+          vehicleCapacity,
           seats: seatsWithStatus
         }
       })

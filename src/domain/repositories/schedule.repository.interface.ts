@@ -11,11 +11,17 @@ export interface ScheduleRepository {
     data: Partial<Omit<Schedule, 'id' | 'tripId' | 'createdAt' | 'updatedAt'>>
   ) => Promise<Schedule | null>
   delete: (id: string) => Promise<boolean>
-  getSchedulesSeats: (tripId: string) => Promise<
+  getSchedulesSeats: (
+    tripId: string,
+    scheduleId?: string,
+    status?: string
+  ) => Promise<
     Array<{
       scheduleId: string
       departureTime: string
       arrivalTime: string
+      vehicleRegistration: string
+      vehicleCapacity: number
       seats: Array<{ seatNumber: string; status: string }>
     }>
   >

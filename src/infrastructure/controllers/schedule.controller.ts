@@ -115,16 +115,20 @@ export class ScheduleController implements Routes {
       return c.json(result.data, 201)
     })
 
-    // GET /api/schedules/seats?tripId=...
+    // GET /api/schedules/seats?tripId=...&scheduleId=...
     const getSchedulesSeatsQuerySchema = z.object({
-      tripId: z.string().min(1, 'tripId requis')
+      tripId: z.string().min(1, 'tripId requis'),
+      scheduleId: z.string().optional()
     })
     const seatAvailabilitySchema = z.object({
       scheduleId: z.string(),
       departureTime: z.string(),
       arrivalTime: z.string(),
+      vehicleRegistration: z.string(),
+      vehicleCapacity: z.number(),
       seats: z.array(
         z.object({
+          id: z.string(),
           seatNumber: z.string(),
           status: z.enum(['free', 'occupied'])
         })
@@ -137,7 +141,7 @@ export class ScheduleController implements Routes {
       responses: {
         200: {
           content: { 'application/json': { schema: z.object({ data: z.array(seatAvailabilitySchema) }) } },
-          description: 'Disponibilité des sièges pour chaque schedule d’un trip'
+          description: 'Disponibilité des sièges pour chaque schedule d’un trip ou un schedule précis'
         },
         400: {
           content: { 'application/json': { schema: z.object({ error: z.string() }) } },
@@ -146,15 +150,15 @@ export class ScheduleController implements Routes {
       },
       tags: ['Schedules'],
       summary: 'Voir la disponibilité des sièges par horaire',
-      description: 'Retourne la liste des horaires et la disponibilité des sièges pour un tripId donné'
+      description: 'Retourne la liste des horaires et la disponibilité des sièges pour un tripId donné, ou un horaire précis si scheduleId est fourni'
     })
     this.controller.openapi(getSchedulesSeatsRoute, async (c: any) => {
-      const { tripId } = c.req.valid('query')
+      const { tripId, scheduleId, status } = c.req.valid('query')
       if (!tripId) {
         return c.json({ error: 'tripId requis' }, 400)
       }
       const scheduleRepository = new ScheduleRepositoryImpl()
-      const results = await scheduleRepository.getSchedulesSeats(tripId)
+      const results = await scheduleRepository.getSchedulesSeats(tripId, scheduleId, status)
       return c.json({ data: results }, 200)
     })
 
