@@ -1,4 +1,4 @@
-import { count, eq, inArray } from 'drizzle-orm'
+import { count, desc, eq, inArray } from 'drizzle-orm'
 import { ActivityType } from '../../../infrastructure/config/activity.config'
 import { db } from '../../../infrastructure/database/db/index'
 import {
@@ -73,7 +73,7 @@ export class GetAdminBookingsUseCase {
         .where(eq(bookings.userId, userId))
         .limit(limit)
         .offset(offset)
-        .orderBy(bookings.bookedAt) // Ajout d'un ordre pour la cohérence
+        .orderBy(desc(bookings.bookedAt)) // Ajout d'un ordre pour la cohérence
     } else {
       // Si pas de userId, on récupère tous les bookings
       rows = await db
@@ -86,7 +86,7 @@ export class GetAdminBookingsUseCase {
         .leftJoin(users, eq(bookings.userId, users.id))
         .limit(limit)
         .offset(offset)
-        .orderBy(bookings.bookedAt) // Ajout d'un ordre pour la cohérence
+        .orderBy(desc(bookings.bookedAt)) // Ajout d'un ordre pour la cohérence
     }
     // Récupérer les seatIds pour chaque booking (requête séparée, inArray)
     const bookingIds = rows.map((row) => row.bookings.id).filter(Boolean)
