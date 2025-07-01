@@ -14,6 +14,7 @@ import {
 } from '../../../infrastructure/database/schema/schema'
 
 export interface GetAdminBookingsRequest {
+  userId?: string // Optionnel, si on veut filtrer par utilisateur
   page: number
   limit: number
 }
@@ -33,36 +34,60 @@ export interface BookingSummary {
   user?: any
 }
 
+export interface GetAdminBookingsStats {
+  totalTrips: number
+  confirmedTrips: number
+  completedTrips: number
+  totalSpent: number
+}
+
 export interface GetAdminBookingsResponse {
   data: BookingSummary[]
   page: number
   limit: number
   total: number
+  stats?: GetAdminBookingsStats
 }
 
 export class GetAdminBookingsUseCase {
   async execute(request: GetAdminBookingsRequest): Promise<GetAdminBookingsResponse> {
-    const { page, limit } = request
+    const { page, limit, userId } = request
     const offset = (page - 1) * limit
 
     // Récupérer le total des bookings (pour la pagination) - utilisation de count()
     const [totalResult] = await db.select({ count: count() }).from(bookings)
-
     const total = totalResult.count
 
     // Requête paginée avec jointures pour enrichir chaque réservation
-    const rows = await db
-      .select()
-      .from(bookings)
-      .leftJoin(trips, eq(bookings.tripId, trips.id))
-      .leftJoin(drivers, eq(trips.driverId, drivers.id))
-      .leftJoin(vehicles, eq(trips.vehicleId, vehicles.id))
-      .leftJoin(routes, eq(trips.routeId, routes.id))
-      .leftJoin(users, eq(bookings.userId, users.id))
-      .limit(limit)
-      .offset(offset)
-      .orderBy(bookings.bookedAt) // Ajout d'un ordre pour la cohérence
-
+    // On peut filtrer par userId si fourni
+    let rows = []
+    if (userId) {
+      rows = await db
+        .select()
+        .from(bookings)
+        .leftJoin(trips, eq(bookings.tripId, trips.id))
+        .leftJoin(drivers, eq(trips.driverId, drivers.id))
+        .leftJoin(vehicles, eq(trips.vehicleId, vehicles.id))
+        .leftJoin(routes, eq(trips.routeId, routes.id))
+        .leftJoin(users, eq(bookings.userId, users.id))
+        .where(eq(bookings.userId, userId))
+        .limit(limit)
+        .offset(offset)
+        .orderBy(bookings.bookedAt) // Ajout d'un ordre pour la cohérence
+    } else {
+      // Si pas de userId, on récupère tous les bookings
+      rows = await db
+        .select()
+        .from(bookings)
+        .leftJoin(trips, eq(bookings.tripId, trips.id))
+        .leftJoin(drivers, eq(trips.driverId, drivers.id))
+        .leftJoin(vehicles, eq(trips.vehicleId, vehicles.id))
+        .leftJoin(routes, eq(trips.routeId, routes.id))
+        .leftJoin(users, eq(bookings.userId, users.id))
+        .limit(limit)
+        .offset(offset)
+        .orderBy(bookings.bookedAt) // Ajout d'un ordre pour la cohérence
+    }
     // Récupérer les seatIds pour chaque booking (requête séparée, inArray)
     const bookingIds = rows.map((row) => row.bookings.id).filter(Boolean)
     let seatMap: Record<string, string[]> = {}
@@ -143,11 +168,31 @@ export class GetAdminBookingsUseCase {
       }
     })
 
+    // Statistiques utilisateur si userId défini
+    let stats: GetAdminBookingsStats | undefined = undefined
+    if (userId) {
+      // Récupérer tous les bookings de l'utilisateur pour les stats
+      const allUserBookings = await db.select().from(bookings).where(eq(bookings.userId, userId))
+
+      const totalTrips = allUserBookings.length
+      const confirmedTrips = allUserBookings.filter((b) => b.status === 'pending').length
+      const completedTrips = allUserBookings.filter((b) => b.status === 'paid').length
+      const totalSpent = allUserBookings.reduce((sum, b) => sum + (Number.parseFloat(b.totalPrice || '0') || 0), 0)
+
+      stats = {
+        totalTrips,
+        confirmedTrips,
+        completedTrips,
+        totalSpent: Math.round(totalSpent)
+      }
+    }
+
     return {
       data,
       page,
       limit,
-      total
+      total,
+      ...(stats ? { stats } : {})
     }
   }
 

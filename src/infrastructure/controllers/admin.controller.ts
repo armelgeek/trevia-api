@@ -446,6 +446,132 @@ export class AdminController implements Routes {
       description: 'Retourne la liste paginée de toutes les réservations (admin uniquement)'
     })
 
+    const getUserBookingsRoute = createRoute({
+      method: 'get',
+      path: '/user/bookings',
+      request: {
+        query: listBookingsQuerySchema
+      },
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              schema: bookingListSchema
+            }
+          },
+          description: "Liste paginée des réservations de l'utilisateur"
+        },
+        401: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Utilisateur non authentifié'
+        },
+        403: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Accès interdit (admin uniquement)'
+        }
+      },
+      tags: ['Admin'],
+      summary: 'Lister toutes les réservations',
+      description: 'Retourne la liste paginée de toutes les réservations'
+    })
+    this.controller.openapi(getUserBookingsRoute, async (c: any) => {
+      const user = c.get('user')
+      if (!user) {
+        return c.json({ error: 'Accès interdit' }, user ? 403 : 401)
+      }
+      const { page = '1', limit = '20' } = c.req.valid('query')
+      const pageNum = Math.max(1, Number.parseInt(page))
+      const limitNum = Math.max(1, Math.min(100, Number.parseInt(limit)))
+
+      try {
+        const getAdminBookingsUseCase = new GetAdminBookingsUseCase()
+        const result = await getAdminBookingsUseCase.execute({
+          userId: user.id,
+          page: pageNum,
+          limit: limitNum
+        })
+        // Enrichissement à plat pour chaque réservation
+        const enriched = result.data.map((booking: any) => {
+          const trip = booking.trip || {}
+          const driver = booking.driver || {}
+          const vehicle = booking.vehicle || {}
+          const route = booking.route || {}
+          const user = booking.user || {}
+
+          return {
+            id: booking.bookingId,
+            tripId: booking.tripId,
+            routeLabel:
+              route.departureCity && route.arrivalCity ? `${route.departureCity} - ${route.arrivalCity}` : null,
+            departureDate: trip.departureDate || null,
+            // arrivalDate supprimé
+            driverId: driver.id || null,
+            driverName: driver.firstName && driver.lastName ? `${driver.firstName} ${driver.lastName}` : null,
+            driverPhone: driver.phone || null,
+            vehicleId: vehicle.model && vehicle.registration ? `${vehicle.model}-${vehicle.registration}` : null,
+            vehicleModel: vehicle.model || null,
+            vehiclePlate: vehicle.plate || null,
+            // Infos utilisateur à plat
+            userId: user.id || null,
+            userName: user.name || null,
+            userFirstname: user.firstname || null,
+            userLastname: user.lastname || null,
+            userEmail: user.email || null,
+            userFullName: user.firstname && user.lastname ? `${user.firstname} ${user.lastname}` : user.name || null,
+            seatIds: booking.seatIds,
+            totalPrice: booking.totalPrice ?? '0',
+            status: booking.status ?? 'pending',
+            bookedAt: booking.bookedAt ? booking.bookedAt : null,
+            seats: booking.seats,
+            seatNumbers: (booking.seats || [])
+              .map((s: any) => {
+                let hour = ''
+                if (s.schedule && s.schedule.departureTime) {
+                  if (/^\d{2}:\d{2}$/.test(s.schedule.departureTime)) {
+                    hour = `(${s.schedule.departureTime})`
+                  } else if (
+                    typeof s.schedule.departureTime === 'string' &&
+                    !Number.isNaN(Date.parse(s.schedule.departureTime))
+                  ) {
+                    const d = new Date(s.schedule.departureTime)
+                    hour = ` • ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  }
+                }
+                return s.seatNumber ? `${s.seatNumber} ${hour}`.trim() : null
+              })
+              .filter(Boolean)
+              .join(', ')
+          }
+        })
+        return c.json(
+          {
+            ...result,
+            data: {
+              data: enriched,
+              pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: result.total
+              },
+              stats: result.stats ? result.stats : {}
+            }
+          },
+          200
+        )
+      } catch (error: any) {
+        console.log('err', error)
+        return c.json({ error: 'Erreur lors de la récupération des réservations' }, 400)
+      }
+    })
+
     this.controller.openapi(getAdminBookingsRoute, async (c: any) => {
       const user = c.get('user')
       if (!user || !user.isAdmin) {
