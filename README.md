@@ -4,29 +4,28 @@ Backend API pour la plateforme Trevia développée avec Hono.js et une architect
 
 ## Table des matières 📋
 
-- [Table des matières 📋](#table-des-matières-)
-- [Features 🛠️](#features-️)
-- [Installation 🚀](#installation-)
-- [Scripts disponibles 📜](#scripts-disponibles-)
-- [Schema de la base de données 🧩](#schema-de-la-base-de-données-)
-- [Structure du projet 📁](#structure-du-projet-)
-- [Conventions 📝](#conventions-)
-  - [Git Commit Messages](#git-commit-messages)
-  - [Style de code](#style-de-code)
-- [API Documentation 📚](#api-documentation-)
-- [Tests 🧪](#tests-)
-- [Architecture détaillée 🏗️](#architecture-détaillée-️)
-- [Configuration de l'environnement 🔧](#configuration-de-lenvironnement-)
-- [Système d'authentification 🔐](#système-dauthentification-)
-- [Middlewares 🔄](#middlewares-)
-- [Monitoring et Logs 📊](#monitoring-et-logs-)
-- [Bonnes pratiques de développement 👨‍💻](#bonnes-pratiques-de-développement-)
-  - [TypeScript](#typescript)
-  - [Tests](#tests)
-  - [Organisation du code](#organisation-du-code)
-- [Contribution 🤝](#contribution-)
-- [Déploiement Kubernetes 🚢](#déploiement-kubernetes-)
-  - [Variables d'environnement en production](#variables-denvironnement-en-production)
+- [Trevia Backend](#trevia-backend)
+  - [Table des matières 📋](#table-des-matières-)
+  - [Features 🛠️](#features-️)
+  - [Installation 🚀](#installation-)
+  - [Scripts disponibles 📜](#scripts-disponibles-)
+  - [Schema de la base de données 🧩](#schema-de-la-base-de-données-)
+  - [Structure du projet 📁](#structure-du-projet-)
+  - [Conventions 📝](#conventions-)
+    - [Git Commit Messages](#git-commit-messages)
+    - [Style de code](#style-de-code)
+  - [API Documentation 📚](#api-documentation-)
+  - [Tests 🧪](#tests-)
+  - [Architecture détaillée 🏗️](#architecture-détaillée-️)
+  - [Configuration de l'environnement 🔧](#configuration-de-lenvironnement-)
+  - [Système d'authentification 🔐](#système-dauthentification-)
+  - [Middlewares 🔄](#middlewares-)
+  - [Monitoring et Logs 📊](#monitoring-et-logs-)
+  - [Bonnes pratiques de développement 👨‍💻](#bonnes-pratiques-de-développement-)
+    - [TypeScript](#typescript)
+    - [Tests](#tests)
+    - [Organisation du code](#organisation-du-code)
+  - [Contribution 🤝](#contribution-)
 
 ## Features 🛠️
 
@@ -289,91 +288,3 @@ En plus des conventions de commit, nous suivons ces pratiques :
 3. Push (`git push origin feature/amazing-feature`)
 4. Créer une Merge Request
 
-
-
-## Déploiement Kubernetes 🚢
-
-Le projet inclut une configuration Kubernetes complète dans le fichier `deploy.yml`. Pour déployer l'application :
-
-1. Assurez-vous d'avoir accès à votre cluster Kubernetes et que kubectl est configuré :
-
-```sh
-kubectl config get-contexts
-kubectl config use-context <votre-contexte>
-```
-
-1. Vérifiez que le secret pour le registry existe :
-
-```sh
-kubectl get secret nexus-registry-secret
-```
-
-Si le secret n'existe pas, créez-le avec vos credentials.
-
-1. Appliquez la configuration :
-
-```sh
-kubectl apply -f deploy.yml
-```
-
-1. Vérifiez le déploiement :
-
-```sh
-# Vérifier le déploiement
-kubectl get deployments
-kubectl get pods
-
-# Vérifier le service
-kubectl get services
-
-# Vérifier l'ingress
-kubectl get ingress
-```
-
-L'application sera accessible via l'URL configurée dans l'Ingress (dev-api-heysprech.tiakalo.org).
-
-Pour suivre les logs de l'application :
-
-```sh
-kubectl logs -f deployment/heysprech-back
-```
-
-### Variables d'environnement en production
-
-Les variables d'environnement sont configurées dans le `deploy.yml`. Notez que certaines valeurs diffèrent de l'environnement de développement :
-
-- `DATABASE_URL` pointe vers le service PostgreSQL interne au cluster
-- `NODE_ENV` est défini sur "production"
-
-## Ce que vous pouvez faire avec l'API 🌟
-
-L'API Trevia offre une gamme complète de fonctionnalités pour gérer votre plateforme de transport. Voici ce que vous pouvez accomplir :
-
-- **Gestion des utilisateurs** :
-  - Créer, mettre à jour et supprimer des utilisateurs
-  - Gérer les rôles et permissions
-
-- **Réservations** :
-  - Créer et gérer des réservations pour vos clients
-  - Suivre l'état des réservations
-
-- **Paiements** :
-  - Intégration avec Stripe pour des paiements sécurisés
-  - Gestion des statuts de paiement
-
-- **Gestion des véhicules** :
-  - Ajouter, modifier et supprimer des véhicules
-  - Suivre la disponibilité des véhicules
-
-- **Planification des trajets** :
-  - Créer et gérer des trajets
-  - Optimiser les itinéraires
-
-- **Webhooks** :
-  - Recevoir des notifications en temps réel pour les événements importants
-
-- **Tableau de bord administrateur** :
-  - Accéder à des statistiques et rapports détaillés
-  - Gérer les configurations de la plateforme
-
-Explorez la documentation complète pour en savoir plus sur chaque fonctionnalité et comment les utiliser efficacement
