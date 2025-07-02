@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../../infrastructure/database/db/index'
-import { vehicles } from '../../../infrastructure/database/schema/schema'
+import { seats, vehicles } from '../../../infrastructure/database/schema/schema'
+import { randomUUID } from 'crypto'
 
 interface UpdateVehicleInput {
   vehicleId: string
@@ -24,6 +25,25 @@ interface UpdateVehicleOutput {
     equipment: string | null
   }
   error?: string
+}
+
+function generateSeatLabels(capacity: number): { seatNumber: string }[] {
+  // 1A, 2A (avant), puis 1B, 2B, 3B, 4B, 1C, 2C, 3C, 4C, ...
+  const seats: { seatNumber: string }[] = []
+  if (capacity <= 0) return seats
+  if (capacity >= 1) seats.push({ seatNumber: '1A' })
+  if (capacity >= 2) seats.push({ seatNumber: '2A' })
+  if (capacity <= 2) return seats
+  let seatIndex = 3
+  let col = 'B'.charCodeAt(0)
+  while (seatIndex <= capacity) {
+    for (let row = 1; row <= 4 && seatIndex <= capacity; row++) {
+      seats.push({ seatNumber: `${row}${String.fromCharCode(col)}` })
+      seatIndex++
+    }
+    col++
+  }
+  return seats
 }
 
 export class UpdateVehicleUseCase {
@@ -55,6 +75,20 @@ export class UpdateVehicleUseCase {
         })
         .where(eq(vehicles.id, vehicleId))
         .returning()
+
+      // Si la capacité a changé, ajuster les sièges
+      if (updatedVehicle[0] && typeof seatCount === 'string' && existingVehicle.seatCount !== seatCount) {
+        // Supprimer tous les sièges existants
+        await db.delete(seats).where(eq(seats.vehicleId, updatedVehicle[0].id))
+        // Recréer les sièges selon la nouvelle capacité
+        const seatLabels = generateSeatLabels(Number.parseInt(seatCount))
+        const seatInserts = seatLabels.map((s) => ({
+          id: randomUUID(),
+          vehicleId: updatedVehicle[0].id,
+          seatNumber: s.seatNumber
+        }))
+        await db.insert(seats).values(seatInserts)
+      }
 
       if (!updatedVehicle[0]) {
         return { success: false, error: 'Erreur lors de la mise à jour du véhicule' }

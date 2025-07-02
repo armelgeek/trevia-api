@@ -4,6 +4,7 @@ import { CreateVehicleUseCase } from '../../application/use-cases/vehicle/create
 import { GetVehicleByIdUseCase } from '../../application/use-cases/vehicle/get-vehicle-by-id.use-case'
 import { GetVehiclesUseCase } from '../../application/use-cases/vehicle/get-vehicles.use-case'
 import { UpdateVehicleUseCase } from '../../application/use-cases/vehicle/update-vehicle.use-case'
+import { DeleteVehicleUseCase } from '../../application/use-cases/vehicle/delete-vehicle.use-case'
 import type { Routes } from '../../domain/types/route.type'
 
 export class VehicleController implements Routes {
@@ -332,6 +333,76 @@ export class VehicleController implements Routes {
       }
 
       return c.json(result.data, 200)
+    })
+
+    const deleteVehicleRoute = createRoute({
+      method: 'delete',
+      path: '/vehicles/{id}',
+      request: {
+        params: vehicleIdParamSchema
+      },
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              schema: z.object({ success: z.boolean() })
+            }
+          },
+          description: 'Véhicule supprimé'
+        },
+        401: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Utilisateur non authentifié'
+        },
+        403: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Accès interdit (admin uniquement)'
+        },
+        404: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Véhicule non trouvé'
+        }
+      },
+      tags: ['Vehicles'],
+      summary: 'Supprimer un véhicule (admin)',
+      description: 'Supprime un véhicule. Accès réservé aux administrateurs.'
+    })
+
+    this.controller.openapi(deleteVehicleRoute, async (c: any) => {
+      const user = c.get('user')
+      if (!user || !user.isAdmin) {
+        return c.json({ error: 'Accès interdit' }, user ? 403 : 401)
+      }
+
+      const { id } = c.req.valid('param')
+      const deleteVehicleUseCase = new DeleteVehicleUseCase()
+      const result = await deleteVehicleUseCase.execute({ id })
+
+      // If the use case returns only { success: boolean }, handle accordingly
+      if (typeof result === 'object' && 'success' in result && !result.success) {
+        // If error details are provided, handle them
+        // @ts-expect-error: error property may exist depending on use case implementation
+        if (result.error === 'Véhicule non trouvé') {
+          // @ts-expect-error: error property may exist
+          return c.json({ error: result.error }, 404)
+        }
+        // @ts-expect-error: error property may exist
+        return c.json({ error: result.error || 'Erreur lors de la suppression du véhicule' }, 400)
+      }
+
+      return c.json({ success: true }, 200)
     })
   }
 }
