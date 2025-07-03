@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, inArray, sql, count } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../database/db'
-import { trips, routes, drivers, vehicles, bookings, schedules } from '../database/schema/schema'
+import { bookings, drivers, routes, schedules, trips, vehicles } from '../database/schema/schema'
 import type { TripRepository } from '../../domain/repositories/trip.repository.interface'
 import type { Trip, TripFilters } from '../../domain/types/trip.type'
 
@@ -42,10 +42,36 @@ export class TripRepositoryImpl implements TripRepository {
     return toTrip({ ...data, ...row, id, createdAt: now, updatedAt: now })
   }
 
-  async findById(id: string): Promise<Trip | null> {
-    const rows = await db.select().from(trips).where(eq(trips.id, id)).execute()
-    const row = rows[0]
-    return row ? toTrip(row) : null
+  async findById(id: string): Promise<any | null> {
+    const rows = await db
+      .select({
+        tripId: trips.id,
+        departureDate: trips.departureDate,
+        price: trips.price,
+        duration: routes.duration,
+        vehicle: vehicles.model,
+        from: routes.departureCity,
+        to: routes.arrivalCity
+      })
+      .from(trips)
+      .leftJoin(routes, eq(routes.id, trips.routeId))
+      .leftJoin(vehicles, eq(vehicles.id, trips.vehicleId))
+      .where(eq(trips.id, id))
+      .execute()
+    const tripData = rows[0]
+    if (!tripData) return null
+    return {
+      tripId: tripData.tripId,
+      from: tripData.from || '',
+      to: tripData.to || '',
+      date: tripData.departureDate ? new Date(tripData.departureDate).toLocaleDateString() : '',
+      time: tripData.departureDate
+        ? new Date(tripData.departureDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '',
+      duration: tripData.duration || '',
+      pricePerSeat: tripData.price || 0,
+      vehicle: tripData.vehicle || ''
+    }
   }
 
   async findAll(filters?: TripFilters): Promise<{ data: Trip[]; total: number }> {
@@ -150,11 +176,14 @@ export class TripRepositoryImpl implements TripRepository {
         .from(schedules)
         .where(inArray(schedules.tripId, tripIds))
         .execute()
-      availableTimesMap = schedulesRows.reduce((acc, s) => {
-        if (!acc[s.tripId]) acc[s.tripId] = []
-        if (s.departureTime) acc[s.tripId].push(s.departureTime)
-        return acc
-      }, {} as Record<string, string[]>)
+      availableTimesMap = schedulesRows.reduce(
+        (acc, s) => {
+          if (!acc[s.tripId]) acc[s.tripId] = []
+          if (s.departureTime) acc[s.tripId].push(s.departureTime)
+          return acc
+        },
+        {} as Record<string, string[]>
+      )
     }
 
     const data = rows.map((row) => ({

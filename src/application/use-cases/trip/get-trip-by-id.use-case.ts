@@ -1,6 +1,4 @@
-import { eq } from 'drizzle-orm'
-import { db } from '../../../infrastructure/database/db/index'
-import { trips } from '../../../infrastructure/database/schema/schema'
+import { TripRepositoryImpl } from '../../../infrastructure/repositories/trip.repository'
 
 interface GetTripByIdInput {
   id: string
@@ -13,20 +11,15 @@ interface GetTripByIdOutput {
 }
 
 export class GetTripByIdUseCase {
+  private tripRepository = new TripRepositoryImpl()
+
   public async execute(input: GetTripByIdInput): Promise<GetTripByIdOutput> {
     const { id } = input
-
     try {
-      const trip = await db
-        .select()
-        .from(trips)
-        .where(eq(trips.id, id))
-        .then((r) => r[0])
-
+      const trip = await this.tripRepository.findById(id)
       if (!trip) {
         return { success: false, error: 'Voyage non trouvé' }
       }
-
       return { success: true, data: trip }
     } catch (error: any) {
       console.error('Erreur lors de la récupération du voyage:', error)
