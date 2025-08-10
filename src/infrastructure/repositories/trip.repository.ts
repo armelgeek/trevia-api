@@ -14,19 +14,19 @@ function toTrip(row: any): Trip {
     departureDate: row.departureDate ? new Date(row.departureDate).toISOString() : null,
     status: row.status,
     price: row.price,
-    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '',
-    updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : ''
+    createdAt: row.createdAt ? new Date(row.createdAt) : '',
+    updatedAt: row.updatedAt ? new Date(row.updatedAt) : ''
   }
 }
 
 export class TripRepositoryImpl implements TripRepository {
   async create(data: Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>): Promise<Trip> {
-    const now = new Date().toISOString()
+    const now = new Date()
     const id = randomUUID()
     await db
       .insert(trips)
       .values({
-        // @ts-ignore
+        id: randomUUID(),
         routeId: data.routeId,
         driverId: data.driverId,
         vehicleId: data.vehicleId,

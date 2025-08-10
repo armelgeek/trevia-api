@@ -371,7 +371,7 @@ export class TripController implements Routes {
       driverId: z.string(),
       vehicleId: z.string(),
       departureDate: z.string().nullable(),
-      price: z.number().nullable()
+      price: z.string().nullable()
     })
     const createTripRoute = createRoute({
       method: 'post',
@@ -390,7 +390,7 @@ export class TripController implements Routes {
         const input = c.req.valid('json')
         const tripRepository = new TripRepositoryImpl()
         const useCase = new CreateTripUseCase(tripRepository)
-        const result = await useCase.execute(input)
+        const result = await useCase.execute({ ...input, price: Number(input.price) || 0 })
         return c.json(result, 201)
       } catch (error: any) {
         return c.json({ error: error?.message || 'Erreur création voyage' }, 400)
