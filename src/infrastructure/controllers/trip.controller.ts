@@ -171,10 +171,93 @@ export class TripController implements Routes {
         const result = await useCase.execute({ date })
         return c.json(result, 200)
       } catch (error: any) {
-        return c.json({ error: error?.message || 'Erreur lors de la récupération des voyages par date' }, 400)
+        return c.json({ error: error?.message || 'Erreur lors de la recherche des horaires' }, 400)
       }
     })
 
+    // --- Endpoint POST /trips/{id}/duplicate ---
+    const duplicateTripBodySchema = z.object({
+      newDepartureDate: z.string().optional(),
+      dayIncrement: z.number().min(1).optional(),
+      includeSchedules: z.boolean().optional()
+    })
+
+    const duplicateTripResponseSchema = z.object({
+      originalTripId: z.string(),
+      newTripId: z.string(),
+      newDepartureDate: z.string(),
+      schedulesCount: z.number(),
+      seatsCount: z.number()
+    })
+
+    const duplicateTripRoute = createRoute({
+      method: 'post',
+      path: '/trips/{id}/duplicate',
+      request: {
+        params: tripIdParamSchema,
+        body: {
+          content: {
+            'application/json': {
+              schema: duplicateTripBodySchema
+            }
+          }
+        }
+      },
+      responses: {
+        201: {
+          content: {
+            'application/json': {
+              schema: duplicateTripResponseSchema
+            }
+          },
+          description: 'Voyage dupliqué avec succès'
+        },
+        400: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Erreur de validation'
+        },
+        404: {
+          content: {
+            'application/json': {
+              schema: z.object({ error: z.string() })
+            }
+          },
+          description: 'Voyage non trouvé'
+        }
+      },
+      tags: ['Trips'],
+      summary: 'Dupliquer un voyage',
+      description:
+        "Duplique un voyage existant avec possibilité d'inclure les schedules et sièges. La date peut être incrémentée automatiquement ou spécifiée manuellement."
+    })
+
+    this.controller.openapi(duplicateTripRoute, async (c: any) => {
+      const { id } = c.req.valid('param')
+      const { newDepartureDate, dayIncrement, includeSchedules } = c.req.valid('json')
+
+      try {
+        const { DuplicateTripUseCase } = await import('@/application/use-cases/trip/duplicate-trip.use-case')
+        const useCase = new DuplicateTripUseCase()
+        const result = await useCase.execute({
+          tripId: id,
+          newDepartureDate,
+          dayIncrement,
+          includeSchedules
+        })
+
+        if (!result.success) {
+          return c.json({ error: result.error }, result.error === 'Voyage non trouvé' ? 404 : 400)
+        }
+
+        return c.json(result.data, 201)
+      } catch (error: any) {
+        return c.json({ error: error?.message || 'Erreur lors de la duplication du voyage' }, 400)
+      }
+    })
     const getTripByIdRoute = createRoute({
       method: 'get',
       path: '/trips/{id}',
