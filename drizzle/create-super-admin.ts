@@ -94,14 +94,7 @@ async function createSuperAdmin(adminData, superAdminRole) {
         banned: false,
         banReason: '',
         banExpires: new Date(0),
-        isAdmin: true,
-        isTrialActive: false,
-        trialStartDate: now,
-        trialEndDate: now,
-        stripeCustomerId: '',
-        stripeSubscriptionId: '',
-        stripePriceId: '',
-        stripeCurrentPeriodEnd: now
+        isAdmin: true
       }
     })
 

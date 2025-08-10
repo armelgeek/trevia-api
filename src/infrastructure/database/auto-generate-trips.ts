@@ -22,29 +22,75 @@ async function autoGenerateTrips(daysAhead = 30) {
 
   const tripTemplates: TripTemplate[] = [
     {
-      routeId: 'route_1', // Paris-Lyon
-      vehicleId: 'veh_1',
+      routeId: 'route_1', // Paris-Lyon (Express)
+      vehicleId: 'veh_3', // Volvo 9700 (grand autocar)
       driverId: 'drv_1',
       price: '35'
     },
     {
-      routeId: 'route_2', // Lyon-Marseille
-      vehicleId: 'veh_2',
+      routeId: 'route_2', // Lyon-Marseille (Standard)
+      vehicleId: 'veh_2', // Mercedes Sprinter
       driverId: 'drv_2',
       price: '28'
     },
     {
-      routeId: 'route_3', // Paris-Lille
-      vehicleId: 'veh_1',
-      driverId: 'drv_1',
+      routeId: 'route_3', // Paris-Lille (Express)
+      vehicleId: 'veh_6', // Mercedes Sprinter VIP
+      driverId: 'drv_3',
       price: '18'
+    },
+    {
+      routeId: 'route_4', // Paris-Bordeaux (Express)
+      vehicleId: 'veh_5', // Scania Touring
+      driverId: 'drv_4',
+      price: '45'
+    },
+    {
+      routeId: 'route_5', // Lyon-Toulouse (Standard)
+      vehicleId: 'veh_3', // Volvo 9700
+      driverId: 'drv_5',
+      price: '42'
+    },
+    {
+      routeId: 'route_6', // Marseille-Nice (Standard)
+      vehicleId: 'veh_4', // Iveco Daily
+      driverId: 'drv_1',
+      price: '22'
+    },
+    {
+      routeId: 'route_7', // Paris-Strasbourg (Express)
+      vehicleId: 'veh_5', // Scania Touring
+      driverId: 'drv_2',
+      price: '38'
+    },
+    {
+      routeId: 'route_8', // Bordeaux-Toulouse (Standard)
+      vehicleId: 'veh_1', // Renault Master
+      driverId: 'drv_3',
+      price: '25'
+    },
+    {
+      routeId: 'route_9', // Lille-Strasbourg (Express)
+      vehicleId: 'veh_3', // Volvo 9700
+      driverId: 'drv_4',
+      price: '40'
+    },
+    {
+      routeId: 'route_10', // Lyon-Strasbourg (Standard)
+      vehicleId: 'veh_2', // Mercedes Sprinter
+      driverId: 'drv_5',
+      price: '32'
     }
   ]
 
   const scheduleTemplates: ScheduleTemplate[] = [
+    { departure: '06:00:00', arrival: '10:30:00', label: 'Très tôt' },
     { departure: '08:00:00', arrival: '12:30:00', label: 'Matin' },
+    { departure: '10:00:00', arrival: '14:30:00', label: 'Matinée' },
     { departure: '14:00:00', arrival: '18:30:00', label: 'Après-midi' },
-    { departure: '20:00:00', arrival: '00:30:00', label: 'Soir' }
+    { departure: '16:00:00', arrival: '20:30:00', label: 'Fin après-midi' },
+    { departure: '20:00:00', arrival: '00:30:00', label: 'Soir' },
+    { departure: '22:00:00', arrival: '02:30:00', label: 'Nuit' }
   ]
 
   const today = new Date()
@@ -65,9 +111,13 @@ async function autoGenerateTrips(daysAhead = 30) {
     const currentDate = new Date(today)
     currentDate.setDate(today.getDate() + dayOffset)
 
-    if (currentDate.getDay() === 0) {
-      console.info(`⏭️  Ignorer dimanche ${currentDate.toISOString().split('T')[0]}`)
-      continue
+    const dayOfWeek = currentDate.getDay()
+    
+    // Gestion des jours de la semaine
+    if (dayOfWeek === 0) {
+      console.info(`⏭️  Service réduit le dimanche ${currentDate.toISOString().split('T')[0]}`)
+      // On ne garde que les routes principales le dimanche
+      tripTemplates.length = 5
     }
 
     for (const template of tripTemplates) {
@@ -83,6 +133,23 @@ async function autoGenerateTrips(daysAhead = 30) {
         continue
       }
 
+      // Ajustement des prix selon le jour et la période
+      const basePrice = Number.parseInt(template.price, 10)
+      let priceAdjustment = 1
+
+      // Augmentation le weekend
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        priceAdjustment *= 1.1 // +10% le weekend
+      }
+
+      // Augmentation en période de pointe (vacances scolaires, etc.)
+      const isHolidayPeriod = currentDate.getMonth() >= 6 && currentDate.getMonth() <= 7 // Juillet-Août
+      if (isHolidayPeriod) {
+        priceAdjustment *= 1.15 // +15% en période de vacances
+      }
+
+      const finalPrice = Math.round(basePrice * priceAdjustment).toString()
+
       const tripId = randomUUID()
       tripInstances.push({
         id: tripId,
@@ -92,27 +159,15 @@ async function autoGenerateTrips(daysAhead = 30) {
         departureDate: currentDate,
         arrivalDate: null,
         status: 'scheduled',
-        price: template.price
+        price: finalPrice
       })
 
       for (const scheduleTemplate of scheduleTemplates) {
-        const departureDateTime = new Date(currentDate)
-        const [depHour, depMin, depSec] = scheduleTemplate.departure.split(':')
-        departureDateTime.setHours(Number.parseInt(depHour), Number.parseInt(depMin), Number.parseInt(depSec))
-
-        const arrivalDateTime = new Date(currentDate)
-        const [arrHour, arrMin, arrSec] = scheduleTemplate.arrival.split(':')
-        arrivalDateTime.setHours(Number.parseInt(arrHour), Number.parseInt(arrMin), Number.parseInt(arrSec))
-
-        if (arrivalDateTime < departureDateTime) {
-          arrivalDateTime.setDate(arrivalDateTime.getDate() + 1)
-        }
-
         schedulesToInsert.push({
           id: randomUUID(),
           tripId,
-          departureTime: departureDateTime,
-          arrivalTime: arrivalDateTime,
+          departureTime: scheduleTemplate.departure,
+          arrivalTime: scheduleTemplate.arrival,
           status: 'available',
           createdAt: new Date(),
           updatedAt: new Date()

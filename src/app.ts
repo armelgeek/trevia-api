@@ -31,7 +31,7 @@ export class App {
 
     // Initialiser le service de génération automatique des voyages
     this.tripGenerationService = new TripGenerationService()
-    this.initializeTripGeneration()
+    //this.initializeTripGeneration()
 
     this.initializeGlobalMiddlewares()
     this.initializeRoutes(routes)

@@ -99,7 +99,7 @@ export class DriverController implements Routes {
         body: {
           content: {
             'application/json': {
-              schema: driverSchema.omit({ id: true })
+              schema: driverSchema.omit({ id: true, reviews: true, fullName: true })
             }
           }
         }

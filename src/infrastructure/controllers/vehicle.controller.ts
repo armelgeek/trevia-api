@@ -406,11 +406,3 @@ export class VehicleController implements Routes {
     })
   }
 }
-
-// feat: add vehicle availability tracking - 2025-06-21
-
-// fix: vehicle data integrity checks - 2025-06-21
-
-// feat: create vehicle controller - Development on 2025-05-28
-
-// fix: vehicle data integrity checks - Development on 2025-05-29
